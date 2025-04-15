@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Newspaper } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { authApi } from '../../lib/api';
@@ -25,22 +25,25 @@ interface RegisterFormData {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showAreaFields, setShowAreaFields] = useState(false);
   const [postalCodes, setPostalCodes] = useState<string[]>([]);
   const [postalCodeInput, setPostalCodeInput] = useState('');
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>();
   
-  const selectedRole = watch('role');
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormData>();
   
-  // Show area fields for Deliverer and Manager roles
-  useState(() => {
-    if (selectedRole === 'Deliverer' || selectedRole === 'Manager' || selectedRole === 'Customer') {
+  useEffect(() => {
+    const role = searchParams.get('role');
+    if (role) {
+      const capitalizedRole = role.charAt(0).toUpperCase() + role.slice(1) as 'Customer' | 'Deliverer' | 'Manager';
+      setValue('role', capitalizedRole);
+      console.log('Role:', capitalizedRole);
       setShowAreaFields(true);
     } else {
-      setShowAreaFields(false);
+      navigate('/');
     }
-  });
+  }, [searchParams, setValue, navigate]);
 
   const addPostalCode = () => {
     if (postalCodeInput.trim()) {
@@ -59,7 +62,6 @@ export default function RegisterPage() {
     try {
       setIsLoading(true);
       
-      // Add postal codes to the form data if area is present
       if (showAreaFields && data.area) {
         data.area.postalCodes = postalCodes;
       }
@@ -179,29 +181,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <div className="mt-1">
-                <select
-                  id="role"
-                  className="block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  {...register('role', { required: 'Role is required' })}
-                  onChange={(e) => {
-                    const value = e.target.value as 'Customer' | 'Deliverer' | 'Manager';
-                    setShowAreaFields(value === 'Deliverer' || value === 'Manager' || value === 'Customer');
-                  }}
-                >
-                  <option value="Customer">Customer</option>
-                  <option value="Deliverer">Deliverer</option>
-                  <option value="Manager">Manager</option>
-                </select>
-                {errors.role && (
-                  <p className="mt-1 text-sm text-red-500">{errors.role.message}</p>
-                )}
-              </div>
-            </div>
+            <input type="hidden" {...register('role')} />
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">

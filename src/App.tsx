@@ -8,8 +8,14 @@ import RegisterPage from './pages/auth/RegisterPage';
 import CustomerDashboard from './pages/customer/Dashboard';
 import DelivererDashboard from './pages/deliverer/Dashboard';
 import ManagerDashboard from './pages/manager/Dashboard';
+import RoleSelection from './components/RoleSelection';
+import PaymentHistory from './pages/customer/PaymentHistory';
+
+
 
 const queryClient = new QueryClient();
+
+
 
 function App() {
   return (
@@ -18,6 +24,7 @@ function App() {
         <AuthProvider>
           <Routes>
             {/* Public Routes */}
+            <Route path="/" element={<RoleSelection />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
@@ -26,7 +33,10 @@ function App() {
               path="/customer/*"
               element={
                 <ProtectedRoute allowedRoles={['Customer']}>
-                  <CustomerDashboard />
+                  <Routes>
+                    <Route path="/" element={<CustomerDashboard />} />
+                    <Route path="payments" element={<PaymentHistory />} />
+                  </Routes>
                 </ProtectedRoute>
               }
             />
@@ -35,6 +45,7 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Deliverer']}>
                   <DelivererDashboard />
+
                 </ProtectedRoute>
               }
             />
