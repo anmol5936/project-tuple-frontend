@@ -52,6 +52,15 @@ export interface AuthResponse {
   export interface LogoutResponse {
     message: string;
   }
+
+  export interface ChangePasswordRequest {
+    currentPassword: string; // Updated to match the field in changePassword function
+    newPassword: string;
+  }
+  
+  export interface ChangePasswordResponse {
+    message: string;
+  }
   
   // Define all interfaces for the API structure
   interface ApiRoute<Req, Res> {
@@ -85,7 +94,14 @@ export interface AuthResponse {
       path: '/api/auth/logout',
       method: 'POST',
       response: {} as LogoutResponse
-    }
+    },
+    CHANGE_PASSWORD: {
+        path: '/api/auth/change-password',
+        method: 'PUT',
+        request: {} as ChangePasswordRequest,
+        response: {} as ChangePasswordResponse | ErrorResponse, // Union type to handle success and error responses
+      },
+    
   } as const;
   
   /**

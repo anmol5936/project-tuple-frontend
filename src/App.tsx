@@ -10,6 +10,11 @@ import DelivererDashboard from './pages/deliverer/Dashboard';
 import ManagerDashboard from './pages/manager/Dashboard';
 import RoleSelection from './components/RoleSelection';
 import PaymentHistory from './pages/customer/PaymentHistory';
+import Subscriptions from './pages/customer/Subscriptions';
+import Bills from './pages/customer/Bills';
+import Settings from './pages/customer/Settings';
+import Profile from './pages/customer/Profile';
+
 
 
 
@@ -28,6 +33,8 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
+            <Route path='/profile' element={<Profile />} />
+
             {/* Protected Routes */}
             <Route
               path="/customer/*"
@@ -36,6 +43,9 @@ function App() {
                   <Routes>
                     <Route path="/" element={<CustomerDashboard />} />
                     <Route path="payments" element={<PaymentHistory />} />
+                    <Route path="subscriptions" element={<Subscriptions/>} />
+                    <Route path="bills" element={<Bills/>} />
+                    <Route path="settings" element={<Settings/>}/>
                   </Routes>
                 </ProtectedRoute>
               }

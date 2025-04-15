@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { AUTH_ROUTES, CUSTOMER_ROUTES, DELIVERER_ROUTES, MANAGER_ROUTES} from '../types/api';
+import { AUTH_ROUTES, CUSTOMER_ROUTES, DELIVERER_ROUTES, MANAGER_ROUTES,} from '../types/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -40,6 +40,11 @@ export const authApi = {
     const response = await api.post<typeof AUTH_ROUTES.LOGOUT.response>(AUTH_ROUTES.LOGOUT.path);
     return response.data;
   },
+
+  changepassword: async (data: typeof AUTH_ROUTES.CHANGE_PASSWORD.request) => {
+    const response = await api.post<typeof AUTH_ROUTES.CHANGE_PASSWORD.response>(AUTH_ROUTES.CHANGE_PASSWORD.path, data);
+    return response.data;
+  }
 };
 
 // Customer API functions

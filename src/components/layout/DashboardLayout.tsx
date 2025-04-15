@@ -29,6 +29,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   };
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Mobile sidebar */}
@@ -78,7 +82,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </button>
               
               <div className="relative">
-                <button className="flex items-center gap-2 text-sm">
+                <button 
+                  className="flex items-center gap-2 text-sm"
+                  onClick={handleProfileClick} // Add click handler
+                >
                   <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
                     <User className="h-5 w-5 text-gray-500" />
                   </div>
