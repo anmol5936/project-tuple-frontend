@@ -16,13 +16,43 @@ import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 
+type Customer = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  defaultAddress?: {
+    streetAddress: string;
+    city: string;
+    state: string;
+    postalCode: string;
+  };
+  subscriptions: Array<{
+    id: string;
+    publication: {
+      name: string;
+      publicationType: string;
+      language: string;
+    };
+    quantity: number;
+    status: string;
+  }>;
+};
+
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedArea, setSelectedArea] = useState('all');
 
-  const { data: customersData, isLoading } = useQuery({
+  const { data: customersData, isLoading: customersLoading } = useQuery({
     queryKey: ['customers'],
     queryFn: managerApi.getCustomers,
+  });
+
+  const { data: areasData, isLoading: areasLoading } = useQuery({
+    queryKey: ['areas'],
+    queryFn: managerApi.getAreas,
   });
 
   const filteredCustomers = customersData?.customers.filter(customer => {
@@ -34,8 +64,12 @@ export default function Customers() {
     const statusMatch = filterStatus === 'all' || 
       customer.subscriptions.some(sub => sub.status.toLowerCase() === filterStatus.toLowerCase());
 
-    return searchMatch && statusMatch;
-  });
+    const areaMatch = selectedArea === 'all' || 
+      (customer.defaultAddress?.postalCode && 
+       areasData?.areas.some(area => area.postalCodes.includes(customer.defaultAddress.postalCode)));
+
+    return searchMatch && statusMatch && areaMatch;
+  }) || [];
 
   const getSubscriptionStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -148,6 +182,21 @@ export default function Customers() {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-gray-400" />
+                <select
+                  className="border rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
+                >
+                  <option value="all">All Areas</option>
+                  {areasData?.areas.map(area => (
+                    <option key={area.id} value={area.id}>
+                      {area.name} - {area.city}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </Card.Content>
         </Card>
@@ -155,20 +204,20 @@ export default function Customers() {
 
       {/* Customers List */}
       <div className="space-y-6">
-        {isLoading ? (
+        { areasLoading ? (
           <Card>
             <Card.Content className="p-8 text-center text-gray-500">
               Loading customers...
             </Card.Content>
           </Card>
-        ) : filteredCustomers?.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <Card>
             <Card.Content className="p-8 text-center text-gray-500">
               No customers found
             </Card.Content>
           </Card>
         ) : (
-          filteredCustomers?.map((customer) => (
+          filteredCustomers.map((customer) => (
             <Card key={customer.id}>
               <Card.Content className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -187,7 +236,11 @@ export default function Customers() {
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <MapPin className="h-4 w-4 mr-2" />
-                        {customer.defaultAddress.streetAddress}, {customer.defaultAddress.city}, {customer.defaultAddress.state} - {customer.defaultAddress.postalCode}
+                        {customer.defaultAddress ? (
+                          `${customer.defaultAddress.streetAddress}, ${customer.defaultAddress.city}, ${customer.defaultAddress.state} - ${customer.defaultAddress.postalCode}`
+                        ) : (
+                          'No address provided'
+                        )}
                       </div>
                     </div>
                   </div>

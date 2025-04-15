@@ -193,4 +193,89 @@ export const managerApi = {
     );
     return response.data;
   },
+
+  getPublications: async () => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_PUBLICATIONS.response>(
+      MANAGER_ROUTES.GET_PUBLICATIONS.path
+    );
+    return response.data;
+  },
+
+  addPublication: async (data: typeof MANAGER_ROUTES.ADD_PUBLICATION.request) => {
+    const response = await api.post<typeof MANAGER_ROUTES.ADD_PUBLICATION.response>(
+      MANAGER_ROUTES.ADD_PUBLICATION.path,
+      data
+    );
+    return response.data;
+  },
+
+  updatePublication: async (id: string, data: typeof MANAGER_ROUTES.UPDATE_PUBLICATION.request) => {
+    const response = await api.put<typeof MANAGER_ROUTES.UPDATE_PUBLICATION.response>(
+      `${MANAGER_ROUTES.UPDATE_PUBLICATION.path}/${id}`,
+      data
+    );
+    return response.data;
+  },
+
+  getSubscriptionRequests: async () => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_SUBSCRIPTION_REQUESTS.response>(
+      MANAGER_ROUTES.GET_SUBSCRIPTION_REQUESTS.path
+    );
+    return response.data;
+  },
+
+  handleSubscriptionRequest: async (id: string, data: typeof MANAGER_ROUTES.HANDLE_SUBSCRIPTION_REQUEST.request) => {
+    const response = await api.put<typeof MANAGER_ROUTES.HANDLE_SUBSCRIPTION_REQUEST.response>(
+      `${MANAGER_ROUTES.HANDLE_SUBSCRIPTION_REQUEST.path}/${id}`,
+      data
+    );
+    return response.data;
+  },
+
+  getSchedules: async (query?: typeof MANAGER_ROUTES.GET_SCHEDULES.query) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_SCHEDULES.response>(
+      MANAGER_ROUTES.GET_SCHEDULES.path,
+      { params: query }
+    );
+    return response.data;
+  },
+
+  createSchedule: async (data: typeof MANAGER_ROUTES.CREATE_SCHEDULE.request) => {
+    const response = await api.post<typeof MANAGER_ROUTES.CREATE_SCHEDULE.response>(
+      MANAGER_ROUTES.CREATE_SCHEDULE.path,
+      data
+    );
+    return response.data;
+  },
+
+  getBills: async (query?: typeof MANAGER_ROUTES.GET_BILLS.query) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_BILLS.response>(
+      MANAGER_ROUTES.GET_BILLS.path,
+      { params: query }
+    );
+    return response.data;
+  },
+
+  getPayments: async (query?: typeof MANAGER_ROUTES.GET_PAYMENTS.query) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_PAYMENTS.response>(
+      MANAGER_ROUTES.GET_PAYMENTS.path,
+      { params: query }
+    );
+    return response.data;
+  },
+
+  sendPaymentReminders: async () => {
+    const response = await api.post<typeof MANAGER_ROUTES.SEND_PAYMENT_REMINDERS.response>(
+      MANAGER_ROUTES.SEND_PAYMENT_REMINDERS.path
+    );
+    return response.data;
+  },
+
+  generateDeliveryReport: async (query: typeof MANAGER_ROUTES.GENERATE_DELIVERY_REPORT.query) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GENERATE_DELIVERY_REPORT.response>(
+      MANAGER_ROUTES.GENERATE_DELIVERY_REPORT.path,
+      { params: query }
+    );
+    return response.data;
+  },
 };

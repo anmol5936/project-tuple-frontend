@@ -510,6 +510,134 @@ export interface AuthResponse {
       }
     }
   } as const;
+
+
+  export interface Publication {
+    id: string;
+    name: string;
+    language: string;
+    description: string;
+    price: number;
+    publicationType: string;
+    publicationDays: string[];
+    areas: Array<{
+      id: string;
+      name: string;
+      city: string;
+    }>;
+  }
+  
+  export interface SubscriptionRequest {
+    id: string;
+    requestType: 'New' | 'Modify' | 'Cancel';
+    status: 'Pending' | 'Approved' | 'Rejected';
+    userId: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    subscriptionId?: {
+      id: string;
+      areaId: string;
+    };
+    publicationId?: {
+      id: string;
+      name: string;
+    };
+    newAddressId?: {
+      streetAddress: string;
+      city: string;
+      state: string;
+      postalCode: string;
+    };
+    newQuantity?: number;
+    effectiveDate: string;
+    comments?: string;
+  }
+  
+  export interface DeliverySchedule {
+    id: string;
+    personnelId: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+    date: string;
+    areaId: {
+      id: string;
+      name: string;
+    };
+    routeId: {
+      id: string;
+      routeName: string;
+    };
+    notes?: string;
+    status: 'Pending' | 'In Progress' | 'Completed';
+  }
+  
+  export interface Bill {
+    id: string;
+    userId: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    billNumber: string;
+    billDate: string;
+    billMonth: number;
+    billYear: number;
+    totalAmount: number;
+    outstandingAmount: number;
+    dueDate: string;
+    status: 'Unpaid' | 'Partially Paid' | 'Paid';
+    billItems: Array<{
+      publicationId: {
+        name: string;
+        price: number;
+      };
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+    }>;
+  }
+  
+  export interface Payment {
+    id: string;
+    billId: {
+      id: string;
+      billNumber: string;
+    };
+    userId: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+    amount: number;
+    paymentDate: string;
+    paymentMethod: 'Cash' | 'Cheque' | 'Online' | 'UPI' | 'Card';
+    status: 'Pending' | 'Completed' | 'Failed';
+  }
+  
+  export interface DeliveryReport {
+    reportMonth: number;
+    reportYear: number;
+    generatedDate: string;
+    generatedBy: string;
+    reportData: {
+      totalDeliveries: number;
+      successfulDeliveries: number;
+      failedDeliveries: number;
+      skippedDeliveries: number;
+      publications: Record<
+        string,
+        {
+          name: string;
+          totalDelivered: number;
+          revenue: number;
+        }
+      >;
+    };
+  }
   
   /**
    * Manager Routes
@@ -520,28 +648,31 @@ export interface AuthResponse {
       path: '/api/manager/areas',
       method: 'GET',
       response: {
-        areas: [] as Array<{
-          id: string;
-          name: string;
-          city: string;
-          state: string;
-          postalCodes: string[];
-          managers: Array<{
-            firstName: string;
-            lastName: string;
-            email: string;
-          }>;
-          deliverers: Array<{
-            firstName: string;
-            lastName: string;
-            email: string;
-          }>;
-          publications: Array<{
+        areas: Array<{
+            id: string;
             name: string;
-            language: string;
-            price: number;
-            publicationType: string;
-          }>;
+            description?: string;
+            city: string;
+            state: string;
+            postalCodes: string[];
+            managers: Array<{
+              firstName: string;
+              lastName: string;
+              email: string;
+              phone?: string;
+            }>;
+            deliverers: Array<{
+              firstName: string;
+              lastName: string;
+              email: string;
+              phone?: string;
+            }>;
+            publications: Array<{
+              name: string;
+              language: string;
+              price: number;
+              publicationType: string;
+            }>;
         }>
       }
     },
@@ -738,5 +869,194 @@ export interface AuthResponse {
       } as {
         message: string;
       }
-    }
-  } as const;
+    },
+    GET_PUBLICATIONS: {
+        path: '/api/manager/publications',
+        method: 'GET',
+        response: {
+          publications: [] as Publication[],
+        },
+      },
+    
+      ADD_PUBLICATION: {
+        path: '/api/manager/publications',
+        method: 'POST',
+        request: {
+          name: '',
+          language: '',
+          description: '',
+          price: 0,
+          publicationType: '',
+          publicationDays: [] as string[],
+          areaId: '',
+        } as {
+          name: string;
+          language: string;
+          description: string;
+          price: number;
+          publicationType: string;
+          publicationDays: string[];
+          areaId: string;
+        },
+        response: {
+          message: '',
+          publication: {} as Publication,
+        } as {
+          message: string;
+          publication: Publication;
+        },
+      },
+    
+      UPDATE_PUBLICATION: {
+        path: '/api/manager/publications',
+        method: 'PUT',
+        request: {
+          name: '',
+          language: '',
+          description: '',
+          price: 0,
+          publicationType: '',
+          publicationDays: [] as string[],
+          areas: [] as string[],
+        } as {
+          name?: string;
+          language?: string;
+          description?: string;
+          price?: number;
+          publicationType?: string;
+          publicationDays?: string[];
+          areas?: string[];
+        },
+        response: {
+          message: '',
+          publication: {} as Publication,
+        } as {
+          message: string;
+          publication: Publication;
+        },
+      },
+    
+      GET_SUBSCRIPTION_REQUESTS: {
+        path: '/api/manager/subscription-requests',
+        method: 'GET',
+        response: {
+          requests: [] as SubscriptionRequest[],
+        },
+      },
+    
+      HANDLE_SUBSCRIPTION_REQUEST: {
+        path: '/api/manager/subscription-requests/:id',
+        method: 'PUT',
+        request: {
+          status: '' as 'Approved' | 'Rejected',
+          comments: '',
+        } as {
+          status: 'Approved' | 'Rejected';
+          comments?: string;
+        },
+        response: {
+          message: '',
+          request: {} as SubscriptionRequest,
+        } as {
+          message: string;
+          request: SubscriptionRequest;
+        },
+      },
+    
+      GET_SCHEDULES: {
+        path: '/api/manager/schedules',
+        method: 'GET',
+        query: {
+          date: '',
+        } as {
+          date?: string;
+        },
+        response: {
+          schedules: [] as DeliverySchedule[],
+        },
+      },
+    
+      CREATE_SCHEDULE: {
+        path: '/api/manager/schedules',
+        method: 'POST',
+        request: {
+          personnelId: '',
+          date: '',
+          areaId: '',
+          routeId: '',
+          notes: '',
+        } as {
+          personnelId: string;
+          date: string;
+          areaId: string;
+          routeId: string;
+          notes?: string;
+        },
+        response: {
+          message: '',
+          schedule: {} as DeliverySchedule,
+        } as {
+          message: string;
+          schedule: DeliverySchedule;
+        },
+      },
+    
+      GET_BILLS: {
+        path: '/api/manager/bills',
+        method: 'GET',
+        query: {
+          month: 0,
+          year: 0,
+          status: '',
+        } as {
+          month?: number;
+          year?: number;
+          status?: string;
+        },
+        response: {
+          bills: [] as Bill[],
+        },
+      },
+    
+      GET_PAYMENTS: {
+        path: '/api/manager/payments',
+        method: 'GET',
+        query: {
+          startDate: '',
+          endDate: '',
+          status: '',
+        } as {
+          startDate?: string;
+          endDate?: string;
+          status?: string;
+        },
+        response: {
+          payments: [] as Payment[],
+        },
+      },
+    
+      SEND_PAYMENT_REMINDERS: {
+        path: '/api/manager/payment-reminders',
+        method: 'POST',
+        response: {
+          message: '',
+        } as {
+          message: string;
+        },
+      },
+    
+      GENERATE_DELIVERY_REPORT: {
+        path: '/api/manager/reports/delivery',
+        method: 'GET',
+        query: {
+          month: 0,
+          year: 0,
+        } as {
+          month: number;
+          year: number;
+        },
+        response: {
+          report: {} as DeliveryReport,
+        },
+      },
+    } as const;
