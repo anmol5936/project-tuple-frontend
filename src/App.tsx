@@ -14,6 +14,17 @@ import Subscriptions from './pages/customer/Subscriptions';
 import Bills from './pages/customer/Bills';
 import Settings from './pages/customer/Settings';
 import Profile from './pages/customer/Profile';
+import DelivererRoutes from './pages/deliverer/Routes';
+import Schedule from './pages/deliverer/Schedules';
+import Earnings from './pages/deliverer/Earnings';
+import DelivererSettings from './pages/deliverer/DelivererSettings';
+import Customers from './pages/manager/Customers';
+import Deliverers from './pages/manager/Deliverers';
+import { ManagerBills } from './pages/manager/Bills';
+import { Reports } from './pages/manager/Reports';
+import { Publications } from './pages/manager/Publications';
+import { ManagerSettings } from './pages/manager/ManagerSettings';
+
 
 
 
@@ -54,8 +65,13 @@ function App() {
               path="/deliverer/*"
               element={
                 <ProtectedRoute allowedRoles={['Deliverer']}>
-                  <DelivererDashboard />
-
+                   <Routes>
+                  <Route path="/" element={<DelivererDashboard />} />
+                  <Route path="route" element={<DelivererRoutes />} />
+                  <Route path="schedule" element={<Schedule />} />
+                  <Route path="earnings" element={<Earnings/>} />
+                  <Route path="settings" element={<DelivererSettings/>}/>
+                  </Routes>
                 </ProtectedRoute>
               }
             />
@@ -63,7 +79,15 @@ function App() {
               path="/manager/*"
               element={
                 <ProtectedRoute allowedRoles={['Manager']}>
-                  <ManagerDashboard />
+                   <Routes>
+                   <Route path="/" element={<ManagerDashboard />} />
+                    <Route path="settings" element={<ManagerSettings />} />
+                    <Route path="customers" element={<Customers />} />
+                    <Route path="deliverers" element={<Deliverers />} />
+                    <Route path="Bills" element={<ManagerBills/>} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="publications" element={<Publications />} />
+                  </Routes>
                 </ProtectedRoute>
               }
             />
