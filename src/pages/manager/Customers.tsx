@@ -18,25 +18,50 @@ import { Button } from '../../components/ui/Button';
 
 type Customer = {
   id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
+  notificationPreferences?: {
+    email: boolean;
+    sms: boolean;
+  };
   defaultAddress?: {
+    _id: string;
+    userId: string;
     streetAddress: string;
     city: string;
     state: string;
     postalCode: string;
   };
   subscriptions: Array<{
-    id: string;
-    publication: {
+    id?: string;
+    _id: string;
+    userId: string;
+    publicationId: {
+      _id: string;
       name: string;
       publicationType: string;
       language: string;
     };
+    addressId?: {
+      _id: string;
+      userId: string;
+      streetAddress: string;
+      city: string;
+      state: string;
+      postalCode: string;
+    };
+    areaId?: string;
     quantity: number;
+    startDate: string;
     status: string;
+    createdAt: string;
+    deliveryPreferences?: {
+      placement: string;
+      additionalInstructions: string;
+    };
   }>;
 };
 
@@ -55,7 +80,24 @@ export default function Customers() {
     queryFn: managerApi.getAreas,
   });
 
-  const filteredCustomers = customersData?.customers.filter(customer => {
+  // Adapt the API data to match our component's expected format
+  const adaptedCustomers = customersData?.customers?.map(customer => {
+    return {
+      ...customer,
+      id: customer._id || customer.id,
+      subscriptions: customer.subscriptions.map(sub => ({
+        ...sub,
+        id: sub._id || sub.id,
+        publication: {
+          name: sub.publicationId?.name || 'Unknown Publication',
+          publicationType: sub.publicationId?.publicationType || 'Unknown',
+          language: sub.publicationId?.language || 'Unknown'
+        }
+      }))
+    };
+  }) || [];
+
+  const filteredCustomers = adaptedCustomers.filter(customer => {
     const searchMatch = 
       customer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,11 +107,10 @@ export default function Customers() {
       customer.subscriptions.some(sub => sub.status.toLowerCase() === filterStatus.toLowerCase());
 
     const areaMatch = selectedArea === 'all' || 
-      (customer.defaultAddress?.postalCode && 
-       areasData?.areas.some(area => area.postalCodes.includes(customer.defaultAddress.postalCode)));
+      customer.subscriptions.some(sub => sub.areaId === selectedArea);
 
     return searchMatch && statusMatch && areaMatch;
-  }) || [];
+  });
 
   const getSubscriptionStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -82,6 +123,15 @@ export default function Customers() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getTotalSubscriptionsByStatus = (status: string) => {
+    return adaptedCustomers.reduce(
+      (acc, customer) => acc + customer.subscriptions.filter(
+        sub => sub.status.toLowerCase() === status.toLowerCase()
+      ).length,
+      0
+    );
   };
 
   return (
@@ -102,7 +152,7 @@ export default function Customers() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Total Customers</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {customersData?.customers.length || 0}
+                  {adaptedCustomers.length || 0}
                 </p>
               </div>
             </div>
@@ -118,12 +168,7 @@ export default function Customers() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Active Subscriptions</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {customersData?.customers.reduce(
-                    (acc, customer) => acc + customer.subscriptions.filter(
-                      sub => sub.status.toLowerCase() === 'active'
-                    ).length,
-                    0
-                  ) || 0}
+                  {getTotalSubscriptionsByStatus('active')}
                 </p>
               </div>
             </div>
@@ -139,12 +184,7 @@ export default function Customers() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Cancelled Subscriptions</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {customersData?.customers.reduce(
-                    (acc, customer) => acc + customer.subscriptions.filter(
-                      sub => sub.status.toLowerCase() === 'cancelled'
-                    ).length,
-                    0
-                  ) || 0}
+                  {getTotalSubscriptionsByStatus('cancelled')}
                 </p>
               </div>
             </div>
@@ -190,8 +230,8 @@ export default function Customers() {
                   onChange={(e) => setSelectedArea(e.target.value)}
                 >
                   <option value="all">All Areas</option>
-                  {areasData?.areas.map(area => (
-                    <option key={area.id} value={area.id}>
+                  {areasData?.areas?.map(area => (
+                    <option key={area.id || area._id} value={area.id || area._id}>
                       {area.name} - {area.city}
                     </option>
                   ))}
@@ -204,7 +244,7 @@ export default function Customers() {
 
       {/* Customers List */}
       <div className="space-y-6">
-        { areasLoading ? (
+        {customersLoading || areasLoading ? (
           <Card>
             <Card.Content className="p-8 text-center text-gray-500">
               Loading customers...

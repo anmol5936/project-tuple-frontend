@@ -5,23 +5,31 @@
 
 // Request/Response Interfaces
 export interface AuthResponse {
-    message: string;
-    token: string;
-    user: {
+  message: string;
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    area?: {
       id: string;
-      username: string;
-      email: string;
-      firstName: string;
-      lastName: string;
-      role: string;
-      area?: {
-        id: string;
-        name: string;
-        city: string;
-        state: string;
-      };
+      name: string;
+      city: string;
+      state: string;
     };
-  }
+    defaultAddress?: {
+      id: string;
+      streetAddress: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      areaId: string;
+    };
+  };
+}
   
   export interface ErrorResponse {
     message: string;
@@ -41,6 +49,13 @@ export interface AuthResponse {
       city: string;
       state: string;
       postalCodes?: string[];
+    };
+    address?: {
+      streetAddress: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      deliveryInstructions?: string;
     };
   }
   
@@ -945,7 +960,7 @@ export interface AuthResponse {
       },
     
       HANDLE_SUBSCRIPTION_REQUEST: {
-        path: '/api/manager/subscription-requests/:id',
+        path: '/api/manager/subscription-requests',
         method: 'PUT',
         request: {
           status: '' as 'Approved' | 'Rejected',

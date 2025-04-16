@@ -2,36 +2,91 @@ import React, { useEffect, useState } from 'react';
 import { Newspaper, Plus, PauseCircle, XCircle } from 'lucide-react';
 import { customerApi } from '../../lib/api';
 
-type Publication = {
+// Updated interface to match the actual data structure
+interface UserToken {
   id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  areas: Array<{
+    _id: string;
+    name: string;
+    city: string;
+    state: string;
+  }>;
+}
+
+// Function to get user token from localStorage
+const getUserToken = async (): Promise<UserToken> => {
+  const token = localStorage.getItem('user');
+  if (!token) {
+    throw new Error('User token not found in localStorage.');
+  }
+  console.log('User token:', token);
+  return JSON.parse(token) as UserToken;
+};
+
+// Updated to match the actual API response
+type Publication = {
+  _id: string;
   name: string;
   language: string;
   description: string;
   price: number;
   publicationType: string;
   publicationDays: string[];
+  areas: string[];
+  isActive: boolean;
+  managerId: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 };
 
+// Updated to match the actual API response
 type Subscription = {
-  id: string;
-  publication: {
+  _id: string;
+  userId: string;
+  publicationId: {
+    _id: string;
     name: string;
     language: string;
+    description: string;
     price: number;
+    publicationType: string;
+    publicationDays: string[];
+    areas: string[];
+    isActive: boolean;
+    managerId: string;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
   };
   quantity: number;
+  startDate: string;
   status: string;
-  address: {
+  addressId: {
+    _id: string;
+    userId: string;
     streetAddress: string;
     city: string;
     state: string;
     postalCode: string;
+    areaId: string;
+    isDefault: boolean;
+    isActive: boolean;
+    deliveryInstructions: string;
+    __v: number;
   };
-  deliverer: {
-    firstName: string;
-    lastName: string;
-    phone: string;
+  deliveryPreferences: {
+    placement: string;
+    additionalInstructions: string;
   };
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 };
 
 function Subscriptions() {
@@ -40,21 +95,42 @@ function Subscriptions() {
   const [showNewSubscription, setShowNewSubscription] = useState(false);
   const [selectedPublication, setSelectedPublication] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [placement, setPlacement] = useState('Front door');
+  const [additionalInstructions, setAdditionalInstructions] = useState('');
+  const [addressId, setAddressId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch initial data
+  // Fetch initial data and user token
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pubsResponse, subsResponse] = await Promise.all([
-          customerApi.getPublications(),
-          customerApi.getSubscriptions()
-        ]);
-        setPublications(pubsResponse.publications);
-        setSubscriptions(subsResponse.subscriptions);
-      } catch (err) {
-        setError('Failed to load data. Please try again later.');
+        // Get publications and subscriptions data
+        const pubsResponse = await customerApi.getPublications();
+        const subsResponse = await customerApi.getSubscriptions();
+        const userToken = await getUserToken();
+        
+        console.log('Publications:', pubsResponse.publications);
+        console.log('Subscriptions:', subsResponse.subscriptions);
+        
+        setPublications(pubsResponse.publications || []);
+        setSubscriptions(subsResponse.subscriptions || []);
+        
+        // Set addressId from user data if available
+        if (userToken && userToken.defaultAddress && userToken.defaultAddress.id) {
+          setAddressId(userToken.defaultAddress.id);
+        } else {
+          // Try to get the first address from the subscription data if available
+          const firstSub = subsResponse.subscriptions && subsResponse.subscriptions[0];
+          if (firstSub && firstSub.addressId && firstSub.addressId._id) {
+            setAddressId(firstSub.addressId._id);
+          } else {
+            setError('No default address found in user profile.');
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.message || 'Failed to load data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -63,36 +139,51 @@ function Subscriptions() {
   }, []);
 
   const handleCreateSubscription = async () => {
+    if (!selectedPublication) {
+      setError('Please select a publication.');
+      return;
+    }
+    if (!addressId) {
+      setError('No valid address found.');
+      return;
+    }
+    if (!placement) {
+      setError('Please specify a delivery placement.');
+      return;
+    }
     try {
       await customerApi.createSubscription({
         publicationId: selectedPublication,
         quantity,
-        addressId: '1', // You would typically get this from user profile or selection
+        addressId,
         deliveryPreferences: {
-          placement: 'Front door',
-          additionalInstructions: ''
-        }
+          placement,
+          additionalInstructions,
+        },
       });
-      
+
       // Refresh subscriptions
       const subsResponse = await customerApi.getSubscriptions();
       setSubscriptions(subsResponse.subscriptions);
       setShowNewSubscription(false);
       setSelectedPublication('');
       setQuantity(1);
-    } catch (err) {
-      setError('Failed to create subscription. Please try again.');
+      setPlacement('Front door');
+      setAdditionalInstructions('');
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create subscription. Please try again.');
     }
   };
 
   const handleCancelSubscription = async (id: string) => {
     try {
       await customerApi.cancelSubscription(id);
-      // Refresh subscriptions
       const subsResponse = await customerApi.getSubscriptions();
       setSubscriptions(subsResponse.subscriptions);
-    } catch (err) {
-      setError('Failed to cancel subscription. Please try again.');
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to cancel subscription. Please try again.');
     }
   };
 
@@ -100,19 +191,19 @@ function Subscriptions() {
     try {
       const today = new Date();
       const endDate = new Date();
-      endDate.setDate(today.getDate() + 7); // Default 1 week pause
+      endDate.setDate(today.getDate() + 7);
 
       await customerApi.requestPause({
         subscriptionId: id,
         startDate: today.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
       });
-      
-      // Refresh subscriptions
+
       const subsResponse = await customerApi.getSubscriptions();
       setSubscriptions(subsResponse.subscriptions);
-    } catch (err) {
-      setError('Failed to pause subscription. Please try again.');
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to pause subscription. Please try again.');
     }
   };
 
@@ -159,7 +250,7 @@ function Subscriptions() {
                 >
                   <option value="">Select a publication</option>
                   {publications.map((pub) => (
-                    <option key={pub.id} value={pub.id}>
+                    <option key={pub._id} value={pub._id}>
                       {pub.name} ({pub.language}) - ₹{pub.price}/month
                     </option>
                   ))}
@@ -177,16 +268,46 @@ function Subscriptions() {
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Delivery Placement
+                </label>
+                <select
+                  value={placement}
+                  onChange={(e) => setPlacement(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="Front door">Front Door</option>
+                  <option value="Mailbox">Mailbox</option>
+                  <option value="Gate">Gate</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Additional Instructions
+                </label>
+                <textarea
+                  value={additionalInstructions}
+                  onChange={(e) => setAdditionalInstructions(e.target.value)}
+                  placeholder="E.g., Leave at the back door"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  rows={4}
+                />
+              </div>
               <div className="flex gap-2 justify-end">
                 <button
-                  onClick={() => setShowNewSubscription(false)}
+                  onClick={() => {
+                    setShowNewSubscription(false);
+                    setError('');
+                  }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateSubscription}
-                  disabled={!selectedPublication}
+                  disabled={!selectedPublication || !placement || !addressId}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
                 >
                   Subscribe
@@ -197,39 +318,48 @@ function Subscriptions() {
         )}
 
         <div className="grid gap-6">
-          {subscriptions.map((subscription) => (
-            <div key={subscription.id} className="bg-white rounded-lg shadow-md p-6">
+          {subscriptions && subscriptions.length > 0 && subscriptions.map((subscription) => (
+            // Make sure we're using _id instead of id
+            <div key={subscription._id} className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-start">
                 <div className="flex gap-4">
                   <div className="p-3 bg-blue-100 rounded-lg">
                     <Newspaper className="text-blue-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">{subscription.publication.name}</h3>
+                    {/* Check if publicationId exists and has name property */}
+                    <h3 className="text-lg font-semibold">
+                      {subscription.publicationId && subscription.publicationId.name 
+                        ? subscription.publicationId.name 
+                        : "Unknown Publication"}
+                    </h3>
                     <p className="text-gray-600">
                       {subscription.quantity} {subscription.quantity > 1 ? 'copies' : 'copy'} •{' '}
-                      {subscription.publication.language}
+                      {subscription.publicationId && subscription.publicationId.language
+                        ? subscription.publicationId.language 
+                        : "Unknown language"}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Delivers to: {subscription.address.streetAddress},{' '}
-                      {subscription.address.city}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Deliverer: {subscription.deliverer.firstName}{' '}
-                      {subscription.deliverer.lastName} • {subscription.deliverer.phone}
-                    </p>
+                    {/* Check if addressId exists */}
+                    {subscription.addressId && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Delivers to: {subscription.addressId.streetAddress},{' '}
+                        {subscription.addressId.city}
+                      </p>
+                    )}
+                    {/* We don't seem to have deliverer data in the response */}
+                    {/* Removed the deliverer section */}
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handlePauseSubscription(subscription.id)}
+                    onClick={() => handlePauseSubscription(subscription._id)}
                     className="p-2 text-gray-600 hover:text-yellow-600 transition-colors"
                     title="Pause Delivery"
                   >
                     <PauseCircle size={20} />
                   </button>
                   <button
-                    onClick={() => handleCancelSubscription(subscription.id)}
+                    onClick={() => handleCancelSubscription(subscription._id)}
                     className="p-2 text-gray-600 hover:text-red-600 transition-colors"
                     title="Cancel Subscription"
                   >
@@ -238,29 +368,40 @@ function Subscriptions() {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-sm text-gray-600">
-                  Monthly cost: ₹{subscription.publication.price * subscription.quantity}
-                </p>
+                {/* Calculate cost based on publication price and quantity */}
+                {subscription.publicationId && subscription.publicationId.price && (
+                  <p className="text-sm text-gray-600">
+                    Monthly cost: ₹{subscription.publicationId.price * subscription.quantity}
+                  </p>
+                )}
                 <p className="text-sm text-gray-600">
                   Status:{' '}
                   <span
                     className={`font-medium ${
-                      subscription.status === 'active'
+                      subscription.status.toLowerCase() === 'active'
                         ? 'text-green-600'
-                        : subscription.status === 'paused'
-                        ? 'text-yellow-600'
-                        : 'text-red-600'
+                        : subscription.status.toLowerCase() === 'paused'
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
                     }`}
                   >
-                    {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                    {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1).toLowerCase()}
                   </span>
                 </p>
+                {/* Display delivery preferences if available */}
+                {subscription.deliveryPreferences && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Delivery: {subscription.deliveryPreferences.placement} 
+                    {subscription.deliveryPreferences.additionalInstructions && 
+                      ` - ${subscription.deliveryPreferences.additionalInstructions}`}
+                  </p>
+                )}
               </div>
             </div>
           ))}
         </div>
 
-        {subscriptions.length === 0 && (
+        {(!subscriptions || subscriptions.length === 0) && (
           <div className="text-center py-12">
             <Newspaper className="mx-auto text-gray-400 mb-4" size={48} />
             <h3 className="text-lg font-medium text-gray-900">No subscriptions yet</h3>

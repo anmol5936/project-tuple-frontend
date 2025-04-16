@@ -21,6 +21,13 @@ interface RegisterFormData {
     state: string;
     postalCodes?: string[];
   };
+  address?: {
+    streetAddress: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    deliveryInstructions?: string;
+  };
 }
 
 export default function RegisterPage() {
@@ -28,11 +35,12 @@ export default function RegisterPage() {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showAreaFields, setShowAreaFields] = useState(false);
+  const [isCustomerRole, setIsCustomerRole] = useState(false);
   const [postalCodes, setPostalCodes] = useState<string[]>([]);
   const [postalCodeInput, setPostalCodeInput] = useState('');
-  
+
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormData>();
-  
+
   useEffect(() => {
     const role = searchParams.get('role');
     if (role) {
@@ -40,6 +48,7 @@ export default function RegisterPage() {
       setValue('role', capitalizedRole);
       console.log('Role:', capitalizedRole);
       setShowAreaFields(true);
+      setIsCustomerRole(capitalizedRole === 'Customer');
     } else {
       navigate('/');
     }
@@ -61,11 +70,16 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true);
-      
+
       if (showAreaFields && data.area) {
         data.area.postalCodes = postalCodes;
       }
-      
+
+      // Remove address if not Customer role
+      if (!isCustomerRole) {
+        delete data.address;
+      }
+
       await authApi.register(data);
       toast.success('Registration successful! Please login.');
       navigate('/login');
@@ -135,7 +149,7 @@ export default function RegisterPage() {
                 <Input
                   id="email"
                   type="email"
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'Email is required',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -169,7 +183,7 @@ export default function RegisterPage() {
                 <Input
                   id="password"
                   type="password"
-                  {...register('password', { 
+                  {...register('password', {
                     required: 'Password is required',
                     minLength: {
                       value: 8,
@@ -200,7 +214,7 @@ export default function RegisterPage() {
             {showAreaFields && (
               <div className="space-y-4 border border-gray-200 rounded-md p-4">
                 <h3 className="font-medium text-gray-900">Area Information</h3>
-                
+
                 <div>
                   <label htmlFor="areaName" className="block text-sm font-medium text-gray-700">
                     Area Name
@@ -214,7 +228,7 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="areaCity" className="block text-sm font-medium text-gray-700">
                     City
@@ -228,7 +242,7 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label htmlFor="areaState" className="block text-sm font-medium text-gray-700">
                     State
@@ -242,7 +256,7 @@ export default function RegisterPage() {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Postal Codes
@@ -264,7 +278,7 @@ export default function RegisterPage() {
                       Add
                     </Button>
                   </div>
-                  
+
                   {postalCodes.length > 0 && (
                     <div className="mt-2">
                       <div className="flex flex-wrap gap-2">
@@ -276,13 +290,97 @@ export default function RegisterPage() {
                               onClick={() => removePostalCode(index)}
                               className="ml-1 text-blue-600 hover:text-blue-800"
                             >
-                              &times;
+                              ×
                             </button>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {isCustomerRole && (
+              <div className="space-y-4 border border-gray-200 rounded-md p-4">
+                <h3 className="font-medium text-gray-900">Address Information</h3>
+
+                <div>
+                  <label htmlFor="streetAddress" className="block text-sm font-medium text-gray-700">
+                    Street Address
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="streetAddress"
+                      type="text"
+                      {...register('address.streetAddress', {
+                        required: isCustomerRole ? 'Street address is required' : false
+                      })}
+                      error={errors.address?.streetAddress?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="addressCity" className="block text-sm font-medium text-gray-700">
+                    City
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="addressCity"
+                      type="text"
+                      {...register('address.city', {
+                        required: isCustomerRole ? 'City is required' : false
+                      })}
+                      error={errors.address?.city?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="addressState" className="block text-sm font-medium text-gray-700">
+                    State
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="addressState"
+                      type="text"
+                      {...register('address.state', {
+                        required: isCustomerRole ? 'State is required' : false
+                      })}
+                      error={errors.address?.state?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
+                    Postal Code
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="postalCode"
+                      type="text"
+                      {...register('address.postalCode', {
+                        required: isCustomerRole ? 'Postal code is required' : false
+                      })}
+                      error={errors.address?.postalCode?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="deliveryInstructions" className="block text-sm font-medium text-gray-700">
+                    Delivery Instructions (optional)
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="deliveryInstructions"
+                      type="text"
+                      {...register('address.deliveryInstructions')}
+                      error={errors.address?.deliveryInstructions?.message}
+                    />
+                  </div>
                 </div>
               </div>
             )}

@@ -24,6 +24,7 @@ import { ManagerBills } from './pages/manager/Bills';
 import { Reports } from './pages/manager/Reports';
 import { Publications } from './pages/manager/Publications';
 import { ManagerSettings } from './pages/manager/ManagerSettings';
+import SubscriptionRequests from './pages/manager/SubcriptionRequests';
 
 
 
@@ -57,6 +58,7 @@ function App() {
                     <Route path="subscriptions" element={<Subscriptions/>} />
                     <Route path="bills" element={<Bills/>} />
                     <Route path="settings" element={<Settings/>}/>
+                    
                   </Routes>
                 </ProtectedRoute>
               }
@@ -87,6 +89,7 @@ function App() {
                     <Route path="Bills" element={<ManagerBills/>} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="publications" element={<Publications />} />
+                    <Route path="subscription-requests" element={<SubscriptionRequests />} />
                   </Routes>
                 </ProtectedRoute>
               }
