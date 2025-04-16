@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wallet, Calendar, TrendingUp, AlertCircle, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
 import { delivererApi } from '../../lib/api';
 
-
-type Earnings = {
+type Earning = {
   month: number;
   year: number;
   amount: number;
@@ -13,7 +12,7 @@ type Earnings = {
 };
 
 function Earnings() {
-  const [earnings, setEarnings] = useState<Earnings | null>(null);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth() + 1);
@@ -41,13 +40,13 @@ function Earnings() {
     fetchEarnings();
   }, [selectedMonth, selectedYear]);
 
+  console.log('Earnings:', earnings);
+
   // Fetch payment history
   const { data: paymentHistory, isLoading: isPaymentLoading, error: paymentError } = useQuery({
     queryKey: ['paymentHistory', page],
     queryFn: () => delivererApi.getPaymentHistory({ page, limit }),
   });
-
-  console.log('Payment History:', paymentHistory);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -71,6 +70,22 @@ function Earnings() {
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+  // Calculate total earnings amount for the selected period
+  const totalEarningsAmount = earnings.reduce((total, earning) => total + earning.amount, 0);
+
+  // Get commission rate from the first earning record (assuming it's the same for all records in the period)
+  const commissionRate = earnings.length > 0 ? earnings[0].commissionRate : 0;
+
+  // Determine overall status
+  const getOverallStatus = () => {
+    if (earnings.length === 0) return 'Pending';
+    if (earnings.every(e => e.status === 'Paid')) return 'Paid';
+    if (earnings.some(e => e.status === 'Failed')) return 'Failed';
+    return 'Pending';
+  };
+  
+  const overallStatus = getOverallStatus();
 
   if (loading || isPaymentLoading) {
     return (
@@ -145,16 +160,16 @@ function Earnings() {
               </div>
             </div>
 
-            {earnings && (
+            {earnings.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-blue-50 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-blue-900">Total Earnings</h3>
                     <DollarSign className="w-6 h-6 text-blue-500" />
                   </div>
-                  <p className="text-3xl font-bold text-blue-700">{formatCurrency(earnings.amount)}</p>
+                  <p className="text-3xl font-bold text-blue-700">{formatCurrency(totalEarningsAmount)}</p>
                   <div className="mt-2 text-sm text-blue-600">
-                    For {months[earnings.month - 1]} {earnings.year}
+                    For {months[selectedMonth - 1]} {selectedYear}
                   </div>
                 </div>
 
@@ -163,7 +178,7 @@ function Earnings() {
                     <h3 className="text-lg font-semibold text-green-900">Commission Rate</h3>
                     <TrendingUp className="w-6 h-6 text-green-500" />
                   </div>
-                  <p className="text-3xl font-bold text-green-700">{earnings.commissionRate}%</p>
+                  <p className="text-3xl font-bold text-green-700">{commissionRate}%</p>
                   <div className="mt-2 text-sm text-green-600">
                     Standard commission rate
                   </div>
@@ -174,24 +189,28 @@ function Earnings() {
                     <h3 className="text-lg font-semibold text-gray-900">Payment Status</h3>
                     <div
                       className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        earnings.status === 'Paid'
+                        overallStatus === 'Paid'
                           ? 'bg-green-100 text-green-800'
-                          : earnings.status === 'Pending'
+                          : overallStatus === 'Pending'
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {earnings.status}
+                      {overallStatus}
                     </div>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {earnings.status === 'Paid'
+                    {overallStatus === 'Paid'
                       ? 'Your earnings have been processed and paid.'
-                      : earnings.status === 'Pending'
+                      : overallStatus === 'Pending'
                       ? 'Your earnings are being processed and will be paid soon.'
                       : 'There might be an issue with your payment. Please contact support.'}
                   </div>
                 </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No earnings data available for the selected period.</p>
               </div>
             )}
           </div>
@@ -296,7 +315,7 @@ function Earnings() {
         </div>
 
         <div className="text-sm text-gray-600">
-          <p>Note: Earnings are calculated based on 2.5% commission of the total value of publications delivered.</p>
+          <p>Note: Earnings are calculated based on {commissionRate || 2.5}% commission of the total value of publications delivered.</p>
         </div>
       </div>
     </div>
