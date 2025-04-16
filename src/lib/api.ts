@@ -148,6 +148,29 @@ export const delivererApi = {
     );
     return response.data;
   },
+  getPaymentHistory: async (params: typeof DELIVERER_ROUTES.GET_PAYMENT_HISTORY.query = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const response = await api.get<typeof DELIVERER_ROUTES.GET_PAYMENT_HISTORY.response>(
+      `${DELIVERER_ROUTES.GET_PAYMENT_HISTORY.path}?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  },
+  uploadDeliveryProof: async (data: typeof DELIVERER_ROUTES.UPLOAD_DELIVERY_PROOF.request) => {
+    console.log('Uploading proof:', { itemId: data.itemId, photo: data.photo });
+    const formData = new FormData();
+    formData.append('itemId', data.itemId);
+    formData.append('photo', data.photo);
+    const response = await api.post<typeof DELIVERER_ROUTES.UPLOAD_DELIVERY_PROOF.response>(
+      DELIVERER_ROUTES.UPLOAD_DELIVERY_PROOF.path,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data', // Axios sets this automatically, so this may be optional
+        },
+      }
+    );
+    return response.data;
+  },
  
 };
 

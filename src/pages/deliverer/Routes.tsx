@@ -1,39 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MapPin, Route as RouteIcon, Loader2 } from 'lucide-react';
 import { delivererApi } from '../../lib/api';
 
 type Route = {
-  id: string;
+  _id: string;
   routeName: string;
   routeDescription: string;
-  area: {
+  areaId: {
     name: string;
     city: string;
     state: string;
   };
 };
 
- function DelivererRoutes() {
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function DelivererRoutes() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['routes'],
+    queryFn: delivererApi.getRoutes,
+  });
 
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        const data = await delivererApi.getRoutes();
-        setRoutes(data.routes);
-      } catch (err) {
-        setError('Failed to load routes. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const routes: Route[] = data?.routes || [];
 
-    fetchRoutes();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -45,9 +33,9 @@ type Route = {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-red-500 text-center">
-          <p className="text-xl font-semibold">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <p className="text-xl font-semibold">Failed to load routes. Please try again later.</p>
+          <button
+            onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
           >
             Retry
@@ -67,8 +55,8 @@ type Route = {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {routes.map((route) => (
-            <div 
-              key={route.id}
+            <div
+              key={route._id}
               className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-start justify-between">
@@ -78,15 +66,19 @@ type Route = {
                 </div>
                 <MapPin className="w-6 h-6 text-blue-500 flex-shrink-0" />
               </div>
-              
+
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center text-gray-600">
                   <span className="font-medium">Area:</span>
-                  <span className="ml-2">{route.area.name}</span>
+                  <span className="ml-2">{route.areaId?.name || 'N/A'}</span>
                 </div>
                 <div className="flex items-center text-gray-600 mt-1">
                   <span className="font-medium">Location:</span>
-                  <span className="ml-2">{route.area.city}, {route.area.state}</span>
+                  <span className="ml-2">
+                    {route.areaId?.city && route.areaId?.state
+                      ? `${route.areaId.city}, ${route.areaId.state}`
+                      : 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>

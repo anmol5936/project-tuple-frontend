@@ -412,6 +412,7 @@ export interface AuthResponse {
         }>
       }
     },
+    
   
     GET_SCHEDULE: {
       path: '/api/deliverer/schedule',
@@ -530,7 +531,74 @@ export interface AuthResponse {
           commissionRate: number;
         };
       }
-    }
+    },
+    GET_PAYMENT_HISTORY: {
+      path: '/api/deliverer/payment-history',
+      method: 'GET',
+      query: {
+        page: undefined,
+        limit: undefined,
+      } as {
+        page?: number;
+        limit?: number;
+      },
+      response: {
+        payments: [] as Array<{
+          id: string;
+          personnelId: string;
+          amount: number;
+          paymentMonth: number;
+          paymentYear: number;
+        }>,
+        pagination: {
+          total: 0,
+          pages: 0,
+          page: 0,
+          limit: 0,
+        },
+      } as {
+        payments: Array<{
+          id: string;
+          personnelId: string;
+          amount: number;
+          paymentMonth: number;
+          paymentYear: number;
+        }>;
+        pagination: {
+          total: number;
+          pages: number;
+          page: number;
+          limit: number;
+        };
+      },
+    },
+  
+    UPLOAD_DELIVERY_PROOF: {
+      path: '/api/deliverer/delivery-proof',
+      method: 'POST',
+      request: {
+        itemId: '',
+        photo: null as any, // File type not directly typable in const assertion
+      } as {
+        itemId: string;
+        photo: File;
+      },
+      response: {
+        message: '',
+        item: {
+          id: '',
+          photoProof: '',
+          updatedAt: '',
+        },
+      } as {
+        message: string;
+        item: {
+          id: string;
+          photoProof: string;
+          updatedAt: string;
+        };
+      },
+    },
   } as const;
 
 
