@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import DashboardLayout from './components/layout/DashboardLayout';
 import CustomerDashboard from './pages/customer/Dashboard';
 import DelivererDashboard from './pages/deliverer/Dashboard';
 import ManagerDashboard from './pages/manager/Dashboard';
@@ -26,14 +27,7 @@ import SubscriptionRequests from './pages/manager/SubcriptionRequests';
 import { ManagerBills } from './pages/manager/Bills';
 import CustomerBills from './pages/customer/Bills';
 
-
-
-
-
-
 const queryClient = new QueryClient();
-
-
 
 function App() {
   return (
@@ -45,22 +39,39 @@ function App() {
             <Route path="/" element={<RoleSelection />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/profile" element={<Profile />} />
 
-            <Route path='/profile' element={<Profile />} />
-
-            {/* Protected Routes */}
+            {/* Protected Customer Routes */}
+            <Route
+              path="/customer"
+              element={
+                <ProtectedRoute allowedRoles={['Customer']}>
+                  <CustomerDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/customer/*"
               element={
                 <ProtectedRoute allowedRoles={['Customer']}>
-                  <Routes>
-                    <Route path="/" element={<CustomerDashboard />} />
-                    <Route path="payments" element={<PaymentHistory />} />
-                    <Route path="subscriptions" element={<Subscriptions/>} />
-                    <Route path="bills" element={<CustomerBills/>} />
-                    <Route path="settings" element={<Settings/>}/>
-                    
-                  </Routes>
+                  <DashboardLayout>
+                    <Routes>
+                      <Route path="payments" element={<PaymentHistory />} />
+                      <Route path="subscriptions" element={<Subscriptions />} />
+                      <Route path="bills" element={<CustomerBills />} />
+                      <Route path="settings" element={<Settings />} />
+                    </Routes>
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Deliverer Routes */}
+            <Route
+              path="/deliverer"
+              element={
+                <ProtectedRoute allowedRoles={['Deliverer']}>
+                  <DelivererDashboard />
                 </ProtectedRoute>
               }
             />
@@ -68,13 +79,24 @@ function App() {
               path="/deliverer/*"
               element={
                 <ProtectedRoute allowedRoles={['Deliverer']}>
-                   <Routes>
-                  <Route path="/" element={<DelivererDashboard />} />
-                  <Route path="route" element={<DelivererRoutes />} />
-                  <Route path="schedule" element={<Schedule />} />
-                  <Route path="earnings" element={<Earnings/>} />
-                  <Route path="settings" element={<DelivererSettings/>}/>
-                  </Routes>
+                  <DashboardLayout>
+                    <Routes>
+                      <Route path="route" element={<DelivererRoutes />} />
+                      <Route path="schedule" element={<Schedule />} />
+                      <Route path="earnings" element={<Earnings />} />
+                      <Route path="settings" element={<DelivererSettings />} />
+                    </Routes>
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Manager Routes */}
+            <Route
+              path="/manager"
+              element={
+                <ProtectedRoute allowedRoles={['Manager']}>
+                  <ManagerDashboard />
                 </ProtectedRoute>
               }
             />
@@ -82,22 +104,23 @@ function App() {
               path="/manager/*"
               element={
                 <ProtectedRoute allowedRoles={['Manager']}>
-                   <Routes>
-                   <Route path="/" element={<ManagerDashboard />} />
-                    <Route path="settings" element={<ManagerSettings />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="deliverers" element={<Deliverers />} />
-                    <Route path="Bills" element={<ManagerBills/>} />
-                    <Route path="reports" element={<Reports />} />
-                    <Route path="publications" element={<Publications />} />
-                    <Route path="subscription-requests" element={<SubscriptionRequests />} />
-                  </Routes>
+                  <DashboardLayout>
+                    <Routes>
+                      <Route path="customers" element={<Customers />} />
+                      <Route path="deliverers" element={<Deliverers />} />
+                      <Route path="publications" element={<Publications />} />
+                      <Route path="bills" element={<ManagerBills />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="subscription-requests" element={<SubscriptionRequests />} />
+                      <Route path="settings" element={<ManagerSettings />} />
+                    </Routes>
+                  </DashboardLayout>
                 </ProtectedRoute>
               }
             />
 
             {/* Default Route */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           <Toaster position="top-right" />
         </AuthProvider>

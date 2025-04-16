@@ -11,7 +11,6 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { managerApi } from '../../lib/api';
-import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -135,7 +134,7 @@ export default function Customers() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <PageHeader
         title="Customer Management"
         subtitle="View and manage customer subscriptions and details"
@@ -341,6 +340,6 @@ export default function Customers() {
           ))
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

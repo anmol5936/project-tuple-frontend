@@ -11,7 +11,6 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { managerApi } from '../../lib/api';
-import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -158,7 +157,7 @@ export default function SubscriptionRequests() {
   const rejectedCount = requests.filter(r => r?.status === 'Rejected').length;
 
   return (
-    <DashboardLayout>
+    <>
       <PageHeader
         title="Subscription Requests"
         subtitle="Review and manage subscription requests from customers"
@@ -359,6 +358,6 @@ export default function SubscriptionRequests() {
           ))
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -12,7 +12,6 @@ import {
   Calendar
 } from 'lucide-react';
 import { managerApi } from '../../lib/api';
-import DashboardLayout from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
@@ -297,7 +296,7 @@ export default function Deliverers() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <PageHeader
         title="Deliverer Management"
         subtitle="View and manage delivery staff and their routes"
@@ -905,6 +904,6 @@ export default function Deliverers() {
           ))
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

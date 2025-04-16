@@ -49,6 +49,7 @@ export default function PaymentHistory() {
     try {
       setIsLoading(true);
       const billsResponse = await customerApi.getBills();
+      console.log('Fetched bills:', billsResponse.bills);
       const pendingBills = billsResponse.bills.filter(
         bill => bill.status === 'Pending' || bill.status === 'Partially Paid'
       );
