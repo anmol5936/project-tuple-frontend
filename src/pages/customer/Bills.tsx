@@ -31,7 +31,7 @@ type BillDetail = {
   }>;
 };
 
-function Bills() {
+function CustomerBills() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [selectedBill, setSelectedBill] = useState<string | null>(null);
   const [billDetails, setBillDetails] = useState<BillDetail | null>(null);
@@ -49,6 +49,7 @@ function Bills() {
   const fetchBills = async () => {
     try {
       const response = await customerApi.getBills();
+      console.log('Fetched bills:', response);
       setBills(response.bills);
     } catch (err) {
       setError('Failed to load bills. Please try again later.');
@@ -129,6 +130,8 @@ function Bills() {
     );
   }
 
+  console.log('Bills:', bills); 
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
@@ -141,103 +144,105 @@ function Bills() {
           </div>
         )}
 
-        <div className="grid gap-4">
-          {bills.map((bill) => (
-            <div key={bill.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div
-                className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => handleBillSelect(bill.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex gap-4">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Receipt className="text-blue-600" size={24} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold">Bill #{bill.billNumber}</h3>
-                      <p className="text-gray-600">
-                        {formatDate(bill.billDate)}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Due date: {formatDate(bill.dueDate)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-semibold">₹{bill.totalAmount}</p>
-                    <p className={`text-sm font-medium ${getStatusColor(bill.status)}`}>
-                      {bill.status}
-                    </p>
-                    {bill.outstandingAmount > 0 && (
-                      <p className="text-sm text-red-600">
-                        Outstanding: ₹{bill.outstandingAmount}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center mt-4">
-                  <p className="text-sm text-gray-600">
-                    {bill.billMonth}/{bill.billYear}
-                  </p>
-                  {selectedBill === bill.id ? (
-                    <ChevronUp size={20} className="text-gray-400" />
-                  ) : (
-                    <ChevronDown size={20} className="text-gray-400" />
-                  )}
-                </div>
-              </div>
-
-              {selectedBill === bill.id && billDetails && (
-                <div className="border-t border-gray-100 p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Bill Details</h4>
-                  <div className="space-y-3">
-                    {billDetails.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <div>
-                          <p className="text-gray-900">{item.publication.name}</p>
-                          <p className="text-gray-500">
-                            {item.quantity} {item.quantity > 1 ? 'copies' : 'copy'} × ₹
-                            {item.publication.price}
-                          </p>
-                        </div>
-                        <p className="text-gray-900">₹{item.totalPrice}</p>
-                      </div>
-                    ))}
-                    <div className="pt-3 border-t border-gray-100">
-                      <div className="flex justify-between font-medium">
-                        <p>Total Amount</p>
-                        <p>₹{billDetails.bill.totalAmount}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {bill.status.toLowerCase() !== 'paid' && (
-                    <button
-                      onClick={() => {
-                        setPaymentAmount(bill.outstandingAmount);
-                        setShowPaymentModal(true);
-                      }}
-                      className="mt-6 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CreditCard size={20} />
-                      Pay Now
-                    </button>
-                  )}
-                </div>
-              )}
+<div className="grid gap-4">
+  {bills.map((bill) => (
+    <div key={bill._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div
+        className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+        onClick={() => handleBillSelect(bill._id)}
+      >
+        <div className="flex justify-between items-start">
+          <div className="flex gap-4">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <Receipt className="text-blue-600" size={24} />
             </div>
-          ))}
-
-          {bills.length === 0 && (
-            <div className="text-center py-12">
-              <Receipt className="mx-auto text-gray-400 mb-4" size={48} />
-              <h3 className="text-lg font-medium text-gray-900">No bills yet</h3>
-              <p className="text-gray-600 mt-1">
-                Your bills will appear here when they're generated
+            <div>
+              <h3 className="text-lg font-semibold">Bill #{bill.billNumber}</h3>
+              <p className="text-gray-600">
+                {formatDate(bill.billDate)}
+              </p>
+              <p className="text-sm text-gray-500">
+                Due date: {formatDate(bill.dueDate)}
               </p>
             </div>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-semibold">₹{bill.totalAmount}</p>
+            <p className={`text-sm font-medium ${getStatusColor(bill.status)}`}>
+              {bill.status}
+            </p>
+            {bill.outstandingAmount > 0 && (
+              <p className="text-sm text-red-600">
+                Outstanding: ₹{bill.outstandingAmount}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-between items-center mt-4">
+          <p className="text-sm text-gray-600">
+            {bill.billMonth}/{bill.billYear}
+          </p>
+          {selectedBill === bill._id ? (
+            <ChevronUp size={20} className="text-gray-400" />
+          ) : (
+            <ChevronDown size={20} className="text-gray-400" />
           )}
         </div>
+      </div>
+
+      {selectedBill === bill._id && billDetails && (
+        <div className="border-t border-gray-100 p-6">
+          <h4 className="font-medium text-gray-900 mb-4">Bill Details</h4>
+          <div className="space-y-3">
+            {billDetails.items.map((item, index) => (
+              <div key={index} className="flex justify-between text-sm">
+                <div>
+                  <p className="text-gray-900">
+                    {item.publicationId?.name || 'Unknown Publication'}
+                  </p>
+                  <p className="text-gray-500">
+                    {item.quantity} {item.quantity > 1 ? 'copies' : 'copy'} × ₹
+                    {item.publicationId?.price || 0}
+                  </p>
+                </div>
+                <p className="text-gray-900">₹{item.totalPrice}</p>
+              </div>
+            ))}
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex justify-between font-medium">
+                <p>Total Amount</p>
+                <p>₹{billDetails.bill.totalAmount}</p>
+              </div>
+            </div>
+          </div>
+
+          {bill.status.toLowerCase() !== 'paid' && (
+            <button
+              onClick={() => {
+                setPaymentAmount(bill.outstandingAmount);
+                setShowPaymentModal(true);
+              }}
+              className="mt-6 w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <CreditCard size={20} />
+              Pay Now
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  ))}
+
+  {bills.length === 0 && (
+    <div className="text-center py-12">
+      <Receipt className="mx-auto text-gray-400 mb-4" size={48} />
+      <h3 className="text-lg font-medium text-gray-900">No bills yet</h3>
+      <p className="text-gray-600 mt-1">
+        Your bills will appear here when they're generated
+      </p>
+    </div>
+  )}
+</div>
 
         {showPaymentModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -312,4 +317,4 @@ function Bills() {
   );
 }
 
-export default Bills;
+export default CustomerBills;

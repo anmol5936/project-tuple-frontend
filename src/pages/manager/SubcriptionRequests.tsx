@@ -61,20 +61,25 @@ export default function SubscriptionRequests() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorRequests, setErrorRequests] = useState<string[]>([]);
 
-  const { data: requests, refetch } = useQuery({
+  const { data, refetch, isLoading: requestsLoading } = useQuery({
     queryKey: ['subscription-requests'],
     queryFn: managerApi.getSubscriptionRequests,
   });
 
-  const filteredRequests = requests?.requests.filter(request => {
+  console.log('Subscription Requests:', data);
+
+  // Extract requests array from data
+  const requests = data?.requests || [];
+
+  const filteredRequests = requests.filter(request => {
+    if (!request || !request.userId) return false;
+    
     const customerName = request.userId 
       ? `${request.userId.firstName} ${request.userId.lastName}` 
       : '';
+    
+    // Check if publicationId exists before accessing it
     const publicationName = request.publicationId?.name || '';
-
-    if (!request.userId || !request.publicationId) {
-      return false;
-    }
 
     const searchMatch = 
       customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,7 +89,7 @@ export default function SubscriptionRequests() {
       request.status.toLowerCase() === filterStatus.toLowerCase();
 
     return searchMatch && statusMatch;
-  }) || [];
+  });
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -148,6 +153,10 @@ export default function SubscriptionRequests() {
     await handleApprove(_id);
   };
 
+  const pendingCount = requests.filter(r => r?.status === 'Pending').length;
+  const approvedCount = requests.filter(r => r?.status === 'Approved').length;
+  const rejectedCount = requests.filter(r => r?.status === 'Rejected').length;
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -165,9 +174,7 @@ export default function SubscriptionRequests() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Pending Requests</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests?.requests.filter(r => r.status === 'Pending').length || 0}
-                </p>
+                <p className="text-2xl font-semibold text-gray-900">{pendingCount}</p>
               </div>
             </div>
           </Card.Content>
@@ -181,9 +188,7 @@ export default function SubscriptionRequests() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Approved</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests?.requests.filter(r => r.status === 'Approved').length || 0}
-                </p>
+                <p className="text-2xl font-semibold text-gray-900">{approvedCount}</p>
               </div>
             </div>
           </Card.Content>
@@ -197,9 +202,7 @@ export default function SubscriptionRequests() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Rejected</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {requests?.requests.filter(r => r.status === 'Rejected').length || 0}
-                </p>
+                <p className="text-2xl font-semibold text-gray-900">{rejectedCount}</p>
               </div>
             </div>
           </Card.Content>
@@ -243,7 +246,7 @@ export default function SubscriptionRequests() {
 
       {/* Requests List */}
       <div className="space-y-6">
-        {isLoading ? (
+        {requestsLoading || isLoading ? (
           <Card>
             <Card.Content className="p-8 text-center text-gray-500">
               Loading requests...
@@ -271,19 +274,27 @@ export default function SubscriptionRequests() {
                     </div>
                     <div className="mt-2 space-y-2">
                       <p className="text-sm text-gray-500">
+                        Request Type: <span className="font-medium">{request.requestType}</span>
+                      </p>
+                      <p className="text-sm text-gray-500">
                         Publication: <span className="font-medium">{request.publicationId?.name || 'Unknown'}</span>
                       </p>
-                      <p className="text-sm text-gray-500">
-                        Quantity: <span className="font-medium">{request.newQuantity || 1}</span>
-                      </p>
+                      {request.newQuantity && (
+                        <p className="text-sm text-gray-500">
+                          Quantity: <span className="font-medium">{request.newQuantity}</span>
+                        </p>
+                      )}
                       <p className="text-sm text-gray-500">
                         Request Date: <span className="font-medium">{format(new Date(request.requestDate), 'PPP')}</span>
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Effective Date: <span className="font-medium">{format(new Date(request.effectiveDate), 'PPP')}</span>
                       </p>
                       {request.newAddressId ? (
                         <p className="text-sm text-gray-500">
                           Address: <span className="font-medium">{`${request.newAddressId.streetAddress}, ${request.newAddressId.city}, ${request.newAddressId.state}`}</span>
                         </p>
-                      ) : (
+                      ) : request.requestType === 'New' && (
                         <p className="text-sm text-yellow-500">
                           <AlertCircle className="h-4 w-4 inline mr-1" />
                           No address specified

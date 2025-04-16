@@ -284,23 +284,6 @@ export default function Customers() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.location.href = `/manager/customers/${customer.id}`}
-                    >
-                      View Details
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => window.location.href = `/manager/customers/${customer.id}/edit`}
-                    >
-                      Edit Customer
-                    </Button>
-                  </div>
                 </div>
 
                 {/* Subscriptions */}

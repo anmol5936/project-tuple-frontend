@@ -148,12 +148,34 @@ export const delivererApi = {
     );
     return response.data;
   },
+ 
 };
 
 // Manager API functions
 export const managerApi = {
+
+  getDeliverers: async () => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_DELIVERERS.response>(
+      MANAGER_ROUTES.GET_DELIVERERS.path
+    );
+    return response.data;
+  },
+  
   getAreas: async () => {
     const response = await api.get<typeof MANAGER_ROUTES.GET_AREAS.response>(MANAGER_ROUTES.GET_AREAS.path);
+    return response.data;
+  },
+  
+  getPersonnelIdByUserId: async (userId: string) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_PERSONNEL_ID.response>(
+      MANAGER_ROUTES.GET_PERSONNEL_ID.path(userId)
+    );
+    return response.data;
+  },
+  getRoutes: async (areaId?: string) => {
+    const response = await api.get<typeof MANAGER_ROUTES.GET_ROUTES.response>(
+      MANAGER_ROUTES.GET_ROUTES.path(areaId)
+    );
     return response.data;
   },
 
@@ -161,6 +183,14 @@ export const managerApi = {
     const response = await api.get<typeof MANAGER_ROUTES.GET_CUSTOMERS.response>(MANAGER_ROUTES.GET_CUSTOMERS.path);
     return response.data;
   },
+  createRoute: async (data: typeof MANAGER_ROUTES.CREATE_ROUTE.request) => {
+    const response = await api.post<typeof MANAGER_ROUTES.CREATE_ROUTE.response>(
+      MANAGER_ROUTES.CREATE_ROUTE.path,
+      data
+    );
+    return response.data;
+  },
+
 
   addDeliverer: async (data: typeof MANAGER_ROUTES.ADD_DELIVERER.request) => {
     const response = await api.post<typeof MANAGER_ROUTES.ADD_DELIVERER.response>(

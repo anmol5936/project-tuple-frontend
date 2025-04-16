@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Users, 
   Search, 
@@ -17,26 +17,125 @@ import { Card } from '../../components/ui/Card';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Button } from '../../components/ui/Button';
 
+export interface DeliverySchedule {
+  _id: string;
+  personnelId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    bankDetails: { accountName: string };
+  };
+  date: string;
+  areaId: { _id: string; name: string };
+  routeId: { _id: string; routeName: string };
+  notes?: string;
+  status: string;
+}
+
+export interface CreateRouteRequest {
+  personnelId: string;
+  routeName: string;
+  routeDescription: string;
+  areaId: string;
+  optimizationCriteria: 'Distance' | 'Time' | 'Custom';
+}
+
+export interface DeliveryRoute {
+  _id: string;
+  personnelId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  routeName: string;
+  routeDescription?: string;
+  areaId: {
+    _id: string;
+    name: string;
+  };
+  optimizationCriteria: 'Distance' | 'Time' | 'Custom';
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface DelivererWithPersonnel extends Deliverer {
+  areaName: string;
+  areaId: string;
+  personnelId?: string;
+}
+
+interface Deliverer {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  commissionRate?: number;
+}
+
 export default function Deliverers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
+  const [showAddDelivererForm, setShowAddDelivererForm] = useState(false);
+  const [showCreateRouteForm, setShowCreateRouteForm] = useState(false);
+  const [showCreateScheduleModal, setShowCreateScheduleModal] = useState(false);
+  const [showSchedulesModal, setShowSchedulesModal] = useState(false);
+  const [showRoutesModal, setShowRoutesModal] = useState(false);
+  const [selectedDelivererRoutes, setSelectedDelivererRoutes] = useState<DeliveryRoute[]>([]);
+  const [deliverersWithPersonnel, setDeliverersWithPersonnel] = useState<DelivererWithPersonnel[]>([]);
+  const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
+  const [routes, setRoutes] = useState<DeliveryRoute[]>([]);
 
-  const { data: areasData, isLoading: isLoadingAreas } = useQuery({
+  const queryClient = useQueryClient();
+
+  const { data: areasData, isLoading: isLoadingAreas, refetch: refetchAreas } = useQuery({
     queryKey: ['areas'],
     queryFn: managerApi.getAreas,
   });
 
-  // Get all unique deliverers from all areas
-  const deliverers = areasData?.areas.flatMap(area => 
-    area.deliverers.map(deliverer => ({
-      ...deliverer,
-      areaName: area.name,
-      areaId: area.id
-    }))
-  ) || [];
+  const { data: routesData, isLoading: isLoadingRoutes } = useQuery({
+    queryKey: ['routes'],
+    queryFn: () => managerApi.getRoutes(),
+    enabled: !!areasData,
+  });
 
-  const filteredDeliverers = deliverers.filter(deliverer => {
-    const searchMatch = 
+  useEffect(() => {
+    if (routesData?.routes) {
+      setRoutes(routesData.routes);
+    }
+  }, [routesData]);
+
+  useEffect(() => {
+    const fetchPersonnelIds = async () => {
+      if (!areasData?.areas) return;
+
+      const deliverers = areasData.areas.flatMap(area =>
+        area.deliverers.map(deliverer => ({
+          ...deliverer,
+          areaName: area.name,
+          areaId: area._id,
+        }))
+      );
+
+      const deliverersWithIds = await Promise.all(
+        deliverers.map(async deliverer => {
+          try {
+            const { personnelId } = await managerApi.getPersonnelIdByUserId(deliverer._id);
+            return { ...deliverer, personnelId };
+          } catch (error) {
+            console.error(`Error fetching personnelId for user ${deliverer._id}:`, error);
+            return deliverer;
+          }
+        })
+      );
+
+      setDeliverersWithPersonnel(deliverersWithIds);
+    };
+
+    fetchPersonnelIds();
+  }, [areasData]);
+
+  const filteredDeliverers = deliverersWithPersonnel.filter(deliverer => {
+    const searchMatch =
       deliverer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deliverer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deliverer.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -46,7 +145,6 @@ export default function Deliverers() {
     return searchMatch && areaMatch;
   });
 
-  const [showAddDelivererForm, setShowAddDelivererForm] = useState(false);
   const [newDeliverer, setNewDeliverer] = useState({
     firstName: '',
     lastName: '',
@@ -57,16 +155,37 @@ export default function Deliverers() {
       accountName: '',
       accountNumber: '',
       bankName: '',
-      ifscCode: ''
+      ifscCode: '',
     },
-    commissionRate: 2.5 // Default commission rate as per requirement
+    commissionRate: 2.5,
+  });
+
+  const [newRoute, setNewRoute] = useState<CreateRouteRequest>({
+    personnelId: '',
+    routeName: '',
+    routeDescription: '',
+    areaId: '',
+    optimizationCriteria: 'Distance',
+  });
+
+  const [newSchedule, setNewSchedule] = useState<{
+    personnelId: string;
+    date: string;
+    areaId: string;
+    routeId: string;
+    notes: string;
+  }>({
+    personnelId: '',
+    date: '',
+    areaId: '',
+    routeId: '',
+    notes: '',
   });
 
   const handleAddDeliverer = async () => {
     try {
       await managerApi.addDeliverer(newDeliverer);
       setShowAddDelivererForm(false);
-      // Reset form
       setNewDeliverer({
         firstName: '',
         lastName: '',
@@ -77,12 +196,103 @@ export default function Deliverers() {
           accountName: '',
           accountNumber: '',
           bankName: '',
-          ifscCode: ''
+          ifscCode: '',
         },
-        commissionRate: 2.5
+        commissionRate: 2.5,
       });
+      await refetchAreas();
     } catch (error) {
       console.error('Error adding deliverer:', error);
+      alert('Failed to add deliverer. Please try again.');
+    }
+  };
+
+  const handleCreateRoute = async () => {
+    if (!newRoute.personnelId || !newRoute.routeName || !newRoute.areaId) {
+      alert('Please fill in all required fields: Deliverer, Route Name, and Area');
+      return;
+    }
+
+    try {
+      await managerApi.createRoute(newRoute);
+      setShowCreateRouteForm(false);
+      setNewRoute({
+        personnelId: '',
+        routeName: '',
+        routeDescription: '',
+        areaId: '',
+        optimizationCriteria: 'Distance',
+      });
+      await refetchAreas();
+      await queryClient.invalidateQueries(['routes']);
+    } catch (error) {
+      console.error('Error creating route:', error);
+      alert('Failed to create route. Please check the console for details.');
+    }
+  };
+
+  const handleCreateSchedule = async () => {
+    if (!newSchedule.personnelId || !newSchedule.date || !newSchedule.areaId || !newSchedule.routeId) {
+      alert('Please fill in all required fields: Deliverer, Date, Area, and Route');
+      return;
+    }
+
+    try {
+      await managerApi.createSchedule(newSchedule);
+      setShowCreateScheduleModal(false);
+      setNewSchedule({
+        personnelId: '',
+        date: '',
+        areaId: '',
+        routeId: '',
+        notes: '',
+      });
+      alert('Schedule created successfully!');
+    } catch (error) {
+      console.error('Error creating schedule:', error);
+      alert('Failed to create schedule. Please try again.');
+    }
+  };
+
+  const handleGetSchedules = async () => {
+    try {
+      const response = await managerApi.getSchedules({ date: '' });
+      console.log('Fetched schedules:', response);
+      setSchedules(response.schedules);
+      setShowSchedulesModal(true);
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      alert('Failed to fetch schedules. Please try again.');
+    }
+  };
+
+  const handleViewRoutes = async (personnelId: string) => {
+    try {
+      // First, check if we already have routes data
+      if (routes.length > 0) {
+        // Filter routes to show only those belonging to this deliverer
+        const delivererRoutes = routes.filter(
+          route => route.personnelId._id === personnelId
+        );
+        setSelectedDelivererRoutes(delivererRoutes);
+        setShowRoutesModal(true);
+      } else {
+        // If routes aren't loaded yet, fetch them first
+        const response = await managerApi.getRoutes();
+        if (response && response.routes) {
+          const allRoutes = response.routes;
+          setRoutes(allRoutes);
+          // Then filter for this deliverer
+          const delivererRoutes = allRoutes.filter(
+            route => route.personnelId._id === personnelId
+          );
+          setSelectedDelivererRoutes(delivererRoutes);
+          setShowRoutesModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching routes:', error);
+      alert('Failed to fetch routes. Please try again.');
     }
   };
 
@@ -104,7 +314,7 @@ export default function Deliverers() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Total Deliverers</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {deliverers.length}
+                  {deliverersWithPersonnel.length}
                 </p>
               </div>
             </div>
@@ -136,7 +346,7 @@ export default function Deliverers() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Active Routes</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {areasData?.areas.length || 0}
+                  {routes.length}
                 </p>
               </div>
             </div>
@@ -170,7 +380,7 @@ export default function Deliverers() {
                 >
                   <option value="all">All Areas</option>
                   {areasData?.areas.map(area => (
-                    <option key={area.id} value={area.id}>
+                    <option key={area._id} value={area._id}>
                       {area.name}
                     </option>
                   ))}
@@ -183,6 +393,30 @@ export default function Deliverers() {
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Add Deliverer
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowCreateRouteForm(true)}
+              >
+                <Route className="h-5 w-5 mr-2" />
+                Create Route
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowCreateScheduleModal(true)}
+              >
+                <Calendar className="h-5 w-5 mr-2" />
+                Create Schedule
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleGetSchedules}
+              >
+                <Calendar className="h-5 w-5 mr-2" />
+                View Schedules
               </Button>
             </div>
           </Card.Content>
@@ -201,7 +435,7 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.firstName}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, firstName: e.target.value})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, firstName: e.target.value })}
                 />
               </div>
               <div>
@@ -210,7 +444,7 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.lastName}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, lastName: e.target.value})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, lastName: e.target.value })}
                 />
               </div>
               <div>
@@ -219,7 +453,7 @@ export default function Deliverers() {
                   type="email"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.email}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, email: e.target.value})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, email: e.target.value })}
                 />
               </div>
               <div>
@@ -228,7 +462,7 @@ export default function Deliverers() {
                   type="tel"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.phone}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, phone: e.target.value})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, phone: e.target.value })}
                 />
               </div>
               <div>
@@ -236,11 +470,11 @@ export default function Deliverers() {
                 <select
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.areaId}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, areaId: e.target.value})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, areaId: e.target.value })}
                 >
                   <option value="">Select Area</option>
                   {areasData?.areas.map(area => (
-                    <option key={area.id} value={area.id}>
+                    <option key={area._id} value={area._id}>
                       {area.name}
                     </option>
                   ))}
@@ -252,7 +486,7 @@ export default function Deliverers() {
                   type="number"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.commissionRate}
-                  onChange={(e) => setNewDeliverer({...newDeliverer, commissionRate: parseFloat(e.target.value)})}
+                  onChange={(e) => setNewDeliverer({ ...newDeliverer, commissionRate: parseFloat(e.target.value) })}
                 />
               </div>
             </div>
@@ -265,10 +499,12 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.bankDetails.accountName}
-                  onChange={(e) => setNewDeliverer({
-                    ...newDeliverer,
-                    bankDetails: {...newDeliverer.bankDetails, accountName: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setNewDeliverer({
+                      ...newDeliverer,
+                      bankDetails: { ...newDeliverer.bankDetails, accountName: e.target.value },
+                    })
+                  }
                 />
               </div>
               <div>
@@ -277,10 +513,12 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.bankDetails.accountNumber}
-                  onChange={(e) => setNewDeliverer({
-                    ...newDeliverer,
-                    bankDetails: {...newDeliverer.bankDetails, accountNumber: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setNewDeliverer({
+                      ...newDeliverer,
+                      bankDetails: { ...newDeliverer.bankDetails, accountNumber: e.target.value },
+                    })
+                  }
                 />
               </div>
               <div>
@@ -289,10 +527,12 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.bankDetails.bankName}
-                  onChange={(e) => setNewDeliverer({
-                    ...newDeliverer,
-                    bankDetails: {...newDeliverer.bankDetails, bankName: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setNewDeliverer({
+                      ...newDeliverer,
+                      bankDetails: { ...newDeliverer.bankDetails, bankName: e.target.value },
+                    })
+                  }
                 />
               </div>
               <div>
@@ -301,32 +541,303 @@ export default function Deliverers() {
                   type="text"
                   className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                   value={newDeliverer.bankDetails.ifscCode}
-                  onChange={(e) => setNewDeliverer({
-                    ...newDeliverer,
-                    bankDetails: {...newDeliverer.bankDetails, ifscCode: e.target.value}
-                  })}
+                  onChange={(e) =>
+                    setNewDeliverer({
+                      ...newDeliverer,
+                      bankDetails: { ...newDeliverer.bankDetails, ifscCode: e.target.value },
+                    })
+                  }
                 />
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddDelivererForm(false)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setShowAddDelivererForm(false)}>
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={handleAddDeliverer}
-              >
+              <Button variant="primary" size="sm" onClick={handleAddDeliverer}>
                 Add Deliverer
               </Button>
             </div>
           </Card.Content>
         </Card>
+      )}
+
+      {/* Create Route Form */}
+      {showCreateRouteForm && (
+        <Card className="mb-6">
+          <Card.Content className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Route</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Deliverer</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newRoute.personnelId}
+                  onChange={(e) => setNewRoute({ ...newRoute, personnelId: e.target.value })}
+                >
+                  <option value="">Select Deliverer</option>
+                  {deliverersWithPersonnel.map(deliverer => (
+                    <option key={deliverer._id} value={deliverer.personnelId || ''}>
+                      {deliverer.firstName} {deliverer.lastName} ({deliverer.areaName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Route Name</label>
+                <input
+                  type="text"
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newRoute.routeName}
+                  onChange={(e) => setNewRoute({ ...newRoute, routeName: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Route Description</label>
+                <input
+                  type="text"
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newRoute.routeDescription}
+                  onChange={(e) => setNewRoute({ ...newRoute, routeDescription: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Area</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newRoute.areaId}
+                  onChange={(e) => setNewRoute({ ...newRoute, areaId: e.target.value })}
+                >
+                  <option value="">Select Area</option>
+                  {areasData?.areas.map(area => (
+                    <option key={area._id} value={area._id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Optimization Criteria</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newRoute.optimizationCriteria}
+                  onChange={(e) =>
+                    setNewRoute({
+                      ...newRoute,
+                      optimizationCriteria: e.target.value as 'Distance' | 'Time' | 'Custom',
+                    })
+                  }
+                >
+                  <option value="Distance">Distance</option>
+                  <option value="Time">Time</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-4">
+              <Button variant="outline" size="sm" onClick={() => setShowCreateRouteForm(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleCreateRoute}>
+                Create Route
+              </Button>
+            </div>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Create Schedule Modal */}
+      {showCreateScheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Schedule</h3>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Deliverer</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newSchedule.personnelId}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, personnelId: e.target.value })}
+                >
+                  <option value="">Select Deliverer</option>
+                  {deliverersWithPersonnel.map(deliverer => (
+                    <option key={deliverer._id} value={deliverer.personnelId || ''}>
+                      {deliverer.firstName} {deliverer.lastName} ({deliverer.areaName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <input
+                  type="date"
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newSchedule.date}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Area</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newSchedule.areaId}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, areaId: e.target.value })}
+                >
+                  <option value="">Select Area</option>
+                  {areasData?.areas.map(area => (
+                    <option key={area._id} value={area._id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Route</label>
+                <select
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newSchedule.routeId}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, routeId: e.target.value })}
+                >
+                  <option value="">Select Route</option>
+                  {isLoadingRoutes ? (
+                    <option disabled>Loading routes...</option>
+                  ) : routes.length === 0 ? (
+                    <option disabled>No routes available</option>
+                  ) : (
+                    routes.map(route => (
+                      <option key={route._id} value={route._id}>
+                        {route.routeName} ({route.areaId.name}, {route.personnelId.firstName} {route.personnelId.lastName})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={newSchedule.notes}
+                  onChange={(e) => setNewSchedule({ ...newSchedule, notes: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-4">
+              <Button variant="outline" size="sm" onClick={() => setShowCreateScheduleModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleCreateSchedule}>
+                Create Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedules Modal */}
+      {showSchedulesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Schedules</h3>
+            {schedules.length === 0 ? (
+              <p className="text-gray-500">No schedules found.</p>
+            ) : (
+              <div className="space-y-4">
+                {schedules.map(schedule => (
+                  <Card key={schedule._id}>
+                    <Card.Content className="p-4">
+                      <div className="flex flex-col gap-2">
+                        <p>
+                          <strong>Deliverer:</strong>{' '}
+                          {schedule.personnelId
+                            ? `${schedule.personnelId.bankDetails.accountName} `
+                            : 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Date:</strong> {new Date(schedule.date).toLocaleDateString()}
+                        </p>
+                        <p>
+                          <strong>Area:</strong> {schedule.areaId?.name || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Route:</strong> {schedule.routeId?.routeName || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Notes:</strong> {schedule.notes || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Status:</strong> {schedule.status || 'N/A'}
+                        </p>
+                      </div>
+                    </Card.Content>
+                  </Card>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSchedulesModal(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Routes Modal */}
+      {showRoutesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Deliverer Routes</h3>
+            {selectedDelivererRoutes.length === 0 ? (
+              <p className="text-gray-500">No routes found for this deliverer.</p>
+            ) : (
+              <div className="space-y-4">
+                {selectedDelivererRoutes.map(route => (
+                  <Card key={route._id}>
+                    <Card.Content className="p-4">
+                      <div className="flex flex-col gap-2">
+                        <p>
+                          <strong>Route Name:</strong> {route.routeName}
+                        </p>
+                        <p>
+                          <strong>Description:</strong> {route.routeDescription || 'N/A'}
+                        </p>
+                        <p>
+                          <strong>Area:</strong> {route.areaId.name}
+                        </p>
+                        <p>
+                          <strong>Optimization Criteria:</strong> {route.optimizationCriteria}
+                        </p>
+                        <p>
+                          <strong>Active:</strong> {route.isActive ? 'Yes' : 'No'}
+                        </p>
+                        <p>
+                          <strong>Created At:</strong>{' '}
+                          {new Date(route.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </Card.Content>
+                  </Card>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRoutesModal(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Deliverers List */}
@@ -344,8 +855,8 @@ export default function Deliverers() {
             </Card.Content>
           </Card>
         ) : (
-          filteredDeliverers.map((deliverer) => (
-            <Card key={`${deliverer.firstName}-${deliverer.lastName}-${deliverer.areaId}`}>
+          filteredDeliverers.map(deliverer => (
+            <Card key={`${deliverer._id}-${deliverer.areaId}`}>
               <Card.Content className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                   <div className="mb-4 lg:mb-0">
@@ -363,7 +874,7 @@ export default function Deliverers() {
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="h-4 w-4 mr-2" />
-                        Commission Rate: 2.5%
+                        Commission Rate: {deliverer.commissionRate || 2.5}%
                       </div>
                     </div>
                   </div>
@@ -372,7 +883,7 @@ export default function Deliverers() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.location.href = `/manager/deliverers/${deliverer.areaId}/route`}
+                      onClick={() => handleViewRoutes(deliverer.personnelId || deliverer._id)}
                     >
                       <Route className="h-4 w-4 mr-2" />
                       View Route
@@ -380,7 +891,9 @@ export default function Deliverers() {
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => window.location.href = `/manager/deliverers/${deliverer.areaId}/earnings`}
+                      onClick={() =>
+                        window.location.href = `/manager/deliverers/${deliverer.personnelId || deliverer._id}/earnings`
+                      }
                     >
                       <DollarSign className="h-4 w-4 mr-2" />
                       View Earnings

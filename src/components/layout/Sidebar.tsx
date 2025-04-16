@@ -18,7 +18,7 @@ const roleNavItems = {
     { name: 'Subscriptions', href: '/customer/subscriptions', icon: Newspaper },
     { name: 'Bills', href: '/customer/bills', icon: FileText },
     { name: 'Payment History', href: '/customer/payments', icon: CreditCard },
-    { name: 'Settings', href: '/customer/settings', icon: Settings },
+  
 
   ],
   Deliverer: [
@@ -26,7 +26,7 @@ const roleNavItems = {
     { name: 'Route', href: '/deliverer/route', icon: Map },
     { name: 'Schedule', href: '/deliverer/schedule', icon: Calendar },
     { name: 'Earnings', href: '/deliverer/earnings', icon: CreditCard },
-    { name: 'Settings', href: '/deliverer/settings', icon: Settings },
+ 
     
   ],
   Manager: [
@@ -37,7 +37,7 @@ const roleNavItems = {
     { name: 'Bills', href: '/manager/bills', icon: FileText },
     { name: 'Reports', href: '/manager/reports', icon: BarChart },
     {name:'Subscription-Request', href:'/manager/subscription-requests', icon:GitPullRequest},
-    { name: 'Settings', href: '/manager/settings', icon: Settings },
+
   ],
 };
 

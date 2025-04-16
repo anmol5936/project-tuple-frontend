@@ -57,6 +57,13 @@ export interface AuthResponse {
       postalCode: string;
       deliveryInstructions?: string;
     };
+    bankDetails?: {
+      accountName: string;
+      accountNumber: string;
+      bankName: string;
+      ifscCode: string;
+    };
+    commissionRate?: number;
   }
   
   export interface LoginRequest {
@@ -658,7 +665,107 @@ export interface AuthResponse {
    * Manager Routes
    * Requires authentication and Manager role
    */
+  // Request interface for creating a route
+export interface CreateRouteRequest {
+  personnelId: string;
+  routeName: string;
+  routeDescription?: string;
+  areaId: string;
+  optimizationCriteria?: 'Distance' | 'Time' | 'Custom';
+  addressIds?: Array<{
+    addressId: string;
+    sequenceNumber?: number;
+  }>;
+}
+
+// Response interface for creating a route
+export interface CreateRouteResponse {
+  message: string;
+  route: {
+    id: string;
+    personnelId: {
+      id: string;
+      userId: {
+        id: string;
+        firstName: string;
+        lastName: string;
+      };
+    };
+    routeName: string;
+    routeDescription?: string;
+    areaId: {
+      id: string;
+      name: string;
+      city: string;
+      state: string;
+    };
+    optimizationCriteria: 'Distance' | 'Time' | 'Custom';
+    isActive: boolean;
+    createdAt: string;
+  };
+}
+
+export interface GetPersonnelIdByUserIdRequest {
+  userId: string;
+}
+
+export interface GetPersonnelIdByUserIdResponse {
+  personnelId: string;
+}
+
+export interface DeliveryRoute {
+  _id: string;
+  personnelId: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  routeName: string;
+  routeDescription?: string;
+  areaId: {
+    _id: string;
+    name: string;
+  };
+  optimizationCriteria: 'Distance' | 'Time' | 'Custom';
+  isActive: boolean;
+  createdAt: string;
+}
+
+
+type Deliverer = {
+  _id: string;
+  userId: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+  };
+  joiningDate: string;
+  areasAssigned: Array<{
+    name: string;
+    city: string;
+  }>;
+  isActive: boolean;
+  manager: string;
+  bankDetails: {
+    accountName?: string;
+    accountNumber?: string;
+    bankName?: string;
+    ifscCode?: string;
+  };
+  commissionRate: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
   export const MANAGER_ROUTES = {
+    GET_DELIVERERS: {
+      path: '/api/manager/deliverers',
+      method: 'GET' as const,
+      response: {
+        deliverers: [] as Deliverer[],
+      },
+    },
     GET_AREAS: {
       path: '/api/manager/areas',
       method: 'GET',
@@ -690,6 +797,17 @@ export interface AuthResponse {
             }>;
         }>
       }
+    },
+    GET_PERSONNEL_ID: {
+      path: (userId: string) => `/api/manager/personnel/${userId}`,
+      request: {} as GetPersonnelIdByUserIdRequest,
+      response: {} as GetPersonnelIdByUserIdResponse
+    },
+    CREATE_ROUTE: {
+      path: '/api/manager/routes',
+      method: 'POST',
+      request: {} as CreateRouteRequest,
+      response: {} as CreateRouteResponse
     },
   
     GET_CUSTOMERS: {
@@ -1074,4 +1192,20 @@ export interface AuthResponse {
           report: {} as DeliveryReport,
         },
       },
+      GET_ROUTES: {
+        path: (areaId?: string) =>
+          areaId ? `/api/manager/routes?areaId=${areaId}` : '/api/manager/routes',
+        method: 'GET',
+        request: {
+          areaId: '',
+        } as {
+          areaId?: string;
+        },
+        response: {
+          routes: [] as DeliveryRoute[],
+        } as {
+          routes: DeliveryRoute[];
+        },
+      },
+      
     } as const;

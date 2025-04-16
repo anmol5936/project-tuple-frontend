@@ -11,7 +11,6 @@ import ManagerDashboard from './pages/manager/Dashboard';
 import RoleSelection from './components/RoleSelection';
 import PaymentHistory from './pages/customer/PaymentHistory';
 import Subscriptions from './pages/customer/Subscriptions';
-import Bills from './pages/customer/Bills';
 import Settings from './pages/customer/Settings';
 import Profile from './pages/customer/Profile';
 import DelivererRoutes from './pages/deliverer/Routes';
@@ -20,11 +19,13 @@ import Earnings from './pages/deliverer/Earnings';
 import DelivererSettings from './pages/deliverer/DelivererSettings';
 import Customers from './pages/manager/Customers';
 import Deliverers from './pages/manager/Deliverers';
-import { ManagerBills } from './pages/manager/Bills';
 import { Reports } from './pages/manager/Reports';
 import { Publications } from './pages/manager/Publications';
 import { ManagerSettings } from './pages/manager/ManagerSettings';
 import SubscriptionRequests from './pages/manager/SubcriptionRequests';
+import { ManagerBills } from './pages/manager/Bills';
+import CustomerBills from './pages/customer/Bills';
+
 
 
 
@@ -56,7 +57,7 @@ function App() {
                     <Route path="/" element={<CustomerDashboard />} />
                     <Route path="payments" element={<PaymentHistory />} />
                     <Route path="subscriptions" element={<Subscriptions/>} />
-                    <Route path="bills" element={<Bills/>} />
+                    <Route path="bills" element={<CustomerBills/>} />
                     <Route path="settings" element={<Settings/>}/>
                     
                   </Routes>

@@ -28,6 +28,13 @@ interface RegisterFormData {
     postalCode: string;
     deliveryInstructions?: string;
   };
+  bankDetails?: {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    ifscCode: string;
+  };
+  commissionRate?: number;
 }
 
 export default function RegisterPage() {
@@ -36,6 +43,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showAreaFields, setShowAreaFields] = useState(false);
   const [isCustomerRole, setIsCustomerRole] = useState(false);
+  const [isDelivererRole, setIsDelivererRole] = useState(false);
   const [postalCodes, setPostalCodes] = useState<string[]>([]);
   const [postalCodeInput, setPostalCodeInput] = useState('');
 
@@ -49,6 +57,7 @@ export default function RegisterPage() {
       console.log('Role:', capitalizedRole);
       setShowAreaFields(true);
       setIsCustomerRole(capitalizedRole === 'Customer');
+      setIsDelivererRole(capitalizedRole === 'Deliverer');
     } else {
       navigate('/');
     }
@@ -78,6 +87,12 @@ export default function RegisterPage() {
       // Remove address if not Customer role
       if (!isCustomerRole) {
         delete data.address;
+      }
+
+      // Remove bankDetails if not Deliverer role
+      if (!isDelivererRole) {
+        delete data.bankDetails;
+        delete data.commissionRate;
       }
 
       await authApi.register(data);
@@ -379,6 +394,94 @@ export default function RegisterPage() {
                       type="text"
                       {...register('address.deliveryInstructions')}
                       error={errors.address?.deliveryInstructions?.message}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isDelivererRole && (
+              <div className="space-y-4 border border-gray-200 rounded-md p-4">
+                <h3 className="font-medium text-gray-900">Bank Details</h3>
+
+                <div>
+                  <label htmlFor="accountName" className="block text-sm font-medium text-gray-700">
+                    Account Name
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="accountName"
+                      type="text"
+                      {...register('bankDetails.accountName', {
+                        required: isDelivererRole ? 'Account name is required' : false
+                      })}
+                      error={errors.bankDetails?.accountName?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700">
+                    Account Number
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="accountNumber"
+                      type="text"
+                      {...register('bankDetails.accountNumber', {
+                        required: isDelivererRole ? 'Account number is required' : false
+                      })}
+                      error={errors.bankDetails?.accountNumber?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="bankName" className="block text-sm font-medium text-gray-700">
+                    Bank Name
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="bankName"
+                      type="text"
+                      {...register('bankDetails.bankName', {
+                        required: isDelivererRole ? 'Bank name is required' : false
+                      })}
+                      error={errors.bankDetails?.bankName?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="ifscCode" className="block text-sm font-medium text-gray-700">
+                    IFSC Code
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="ifscCode"
+                      type="text"
+                      {...register('bankDetails.ifscCode', {
+                        required: isDelivererRole ? 'IFSC code is required' : false
+                      })}
+                      error={errors.bankDetails?.ifscCode?.message}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700">
+                    Commission Rate (%)
+                  </label>
+                  <div className="mt-1">
+                    <Input
+                      id="commissionRate"
+                      type="number"
+                      step="0.1"
+                      defaultValue="2.5"
+                      {...register('commissionRate', {
+                        valueAsNumber: true
+                      })}
+                      error={errors.commissionRate?.message}
                     />
                   </div>
                 </div>
