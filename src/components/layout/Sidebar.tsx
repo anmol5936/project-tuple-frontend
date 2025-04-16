@@ -8,7 +8,8 @@ import {
   CreditCard,
   Settings,
   BarChart,
-  GitPullRequest
+  GitPullRequest,
+  GitGraph
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -32,6 +33,7 @@ const roleNavItems = {
     { name: 'Bills', href: '/manager/bills', icon: FileText },
     { name: 'Reports', href: '/manager/reports', icon: BarChart },
     { name: 'Subscription-Request', href: '/manager/subscription-requests', icon: GitPullRequest },
+    { name: 'Analytics', href: '/manager/analytics', icon: GitGraph },
   ],
 };
 

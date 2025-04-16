@@ -26,6 +26,7 @@ import { ManagerSettings } from './pages/manager/ManagerSettings';
 import SubscriptionRequests from './pages/manager/SubcriptionRequests';
 import { ManagerBills } from './pages/manager/Bills';
 import CustomerBills from './pages/customer/Bills';
+import Analytics from './pages/manager/Analytics';
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ function App() {
                       <Route path="reports" element={<Reports />} />
                       <Route path="subscription-requests" element={<SubscriptionRequests />} />
                       <Route path="settings" element={<ManagerSettings />} />
+                      <Route path="analytics" element={<Analytics />} />
                     </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
